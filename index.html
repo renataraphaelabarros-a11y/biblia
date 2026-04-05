@@ -2268,8 +2268,7 @@ function showToast(msg) {
 // ============================================================
 // GOOGLE DRIVE — INTEGRAÇÃO REAL
 // ============================================================
-// Para ativar: substitua 1041275094551-579hpt8v43ql3k9iip65kpds02hceef2.apps.googleusercontent.com pelo Client ID
-// do Google Cloud Console (instruções no README)
+// Google Drive — Client ID configurado
 const GDRIVE_CLIENT_ID = '1041275094551-579hpt8v43ql3k9iip65kpds02hceef2.apps.googleusercontent.com';
 const GDRIVE_FILE_NAME = 'biblia-ara-dados.json';
 const GDRIVE_SCOPES = 'https://www.googleapis.com/auth/drive.appdata';
@@ -2278,7 +2277,7 @@ let driveToken = null;
 let driveFileId = null;
 
 function driveIsConfigured() {
-  return GDRIVE_CLIENT_ID !== '1041275094551-579hpt8v43ql3k9iip65kpds02hceef2.apps.googleusercontent.com';
+  return GDRIVE_CLIENT_ID.length > 10; // sempre true quando Client ID está preenchido
 }
 
 function updateDriveUI(status) {
