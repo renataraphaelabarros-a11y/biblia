@@ -1003,12 +1003,19 @@ option { background: var(--bg2); }
 
 <!-- APP PRINCIPAL -->
 <div id="app">
+  <!-- DRIVE BAR -->
+  <div id="drive-bar" style="display:flex;align-items:center;gap:8px;padding:5px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-size:0.75rem;color:var(--text3)">
+    <span id="drive-dot" style="width:7px;height:7px;border-radius:50%;background:var(--text3);display:inline-block"></span>
+    <span id="drive-status">Drive: nao conectado</span>
+    <button onclick="driveConnect()" style="margin-left:auto;background:none;border:1px solid var(--border);color:var(--text3);cursor:pointer;font-size:0.72rem;padding:2px 8px;border-radius:4px">Conectar</button>
+  </div>
+
   <!-- NAVBAR -->
   <nav class="navbar">
     <div class="nav-brand">+ Bíblia ARA</div>
     <div class="nav-actions">
-      <button class="nav-btn" id="search-nav-btn" title="Buscar">&#128269;</button>
-      <button class="nav-btn" id="theme-btn" title="Alternar tema">&#9790;</button>
+      <button class="nav-btn" id="search-nav-btn" title="Buscar">⌕</button>
+      <button class="nav-btn" id="theme-btn" title="Alternar tema">☽</button>
     </div>
   </nav>
 
@@ -1069,15 +1076,15 @@ option { background: var(--bg2); }
     <div class="page" id="page-notes">
       <div class="filter-chips" id="notes-filters">
         <button class="chip active" data-filter="all">Todas</button>
-        <button class="chip" data-filter="favorites">&#9733; Favoritos</button>
+        <button class="chip" data-filter="favorites">★ Favoritos</button>
       </div>
       <div class="search-wrap">
-        <span class="search-icon">&#128269;</span>
+        <span class="search-icon">⌕</span>
         <input type="text" class="search-input" id="notes-search" placeholder="Buscar nas anotações...">
       </div>
       <div id="notes-list" class="notes-list">
         <div class="empty-state">
-          <div class="empty-icon">&#128221;</div>
+          <div class="empty-icon">✎</div>
           <div class="empty-text">Suas anotações aparecerão aqui.<br>Toque em um versículo para anotar.</div>
         </div>
       </div>
@@ -1085,7 +1092,7 @@ option { background: var(--bg2); }
 
     <!-- ESTUDOS -->
     <div class="page" id="page-studies">
-      <button class="study-btn" id="new-study-btn">&#9998; Novo Estudo</button>
+      <button class="study-btn" id="new-study-btn">✏ Novo Estudo</button>
       <div class="study-editor" id="study-editor">
         <input type="text" class="study-title-input" id="study-title" placeholder="Título do estudo...">
         <textarea class="study-body-input" id="study-body" placeholder="Escreva suas reflexões. Use @Livro C:V para referenciar versículos (ex: @João 3:16)..."></textarea>
@@ -1094,7 +1101,7 @@ option { background: var(--bg2); }
       </div>
       <div id="studies-list">
         <div class="empty-state">
-          <div class="empty-icon">&#128218;</div>
+          <div class="empty-icon">✆</div>
           <div class="empty-text">Seus estudos bíblicos aparecerão aqui.</div>
         </div>
       </div>
@@ -1103,7 +1110,7 @@ option { background: var(--bg2); }
     <!-- BUSCA -->
     <div class="page" id="page-search">
       <div class="search-wrap">
-        <span class="search-icon">&#128269;</span>
+        <span class="search-icon">⌕</span>
         <input type="text" class="search-input" id="search-input" placeholder="Buscar versículos, anotações...">
         <button class="search-clear" id="search-clear">x</button>
       </div>
@@ -1115,7 +1122,7 @@ option { background: var(--bg2); }
       </div>
       <div id="search-results">
         <div class="empty-state">
-          <div class="empty-icon">&#128269;</div>
+          <div class="empty-icon">⌕</div>
           <div class="empty-text">Digite algo para buscar na Bíblia.</div>
         </div>
       </div>
@@ -1148,7 +1155,7 @@ option { background: var(--bg2); }
     </div>
 
     <button class="vm-fav-btn" id="vm-fav-btn">
-      <span id="vm-fav-icon">&#9733;</span> Adicionar aos Favoritos
+      <span id="vm-fav-icon">★</span> Adicionar aos Favoritos
     </button>
     <button class="vm-save-btn" id="vm-save-btn">Salvar Anotação</button>
     <button class="vm-close-btn" id="vm-close-btn">Fechar</button>
@@ -1340,7 +1347,7 @@ async function loadBible() {
 // ============================================================
 function applyTheme() {
   document.documentElement.setAttribute('data-theme', state.theme);
-  document.getElementById('theme-btn').textContent = state.theme === 'dark' ? '&#9790;' : '&#9790;';
+  document.getElementById('theme-btn').textContent = state.theme === 'dark' ? '☽' : '☽';
 }
 
 // ============================================================
@@ -1640,7 +1647,7 @@ function renderChapter() {
     html += `<sup class="verse-num">${v}</sup>${chap[v]}`;
     html += `</span>`;
     if(note) {
-      html += `<span class="verse-inline-note" data-ref="${ref}">&#9998; ${note}</span>`;
+      html += `<span class="verse-inline-note" data-ref="${ref}">✏ ${note}</span>`;
     }
     html += `</div>`;
   });
@@ -1822,7 +1829,7 @@ function initVerseModal() {
     const ann = state.annotations[currentVerse.ref] || {};
     ann.favorite = !ann.favorite;
     state.annotations[currentVerse.ref] = ann;
-    document.getElementById('vm-fav-icon').textContent = ann.favorite ? '&#9733;' : '&#9733;';
+    document.getElementById('vm-fav-icon').textContent = ann.favorite ? '★' : '★';
     document.getElementById('vm-fav-btn').classList.toggle('active', ann.favorite);
     saveState();
   });
@@ -1867,7 +1874,7 @@ function openVerseModal(verse) {
   document.getElementById('vm-ref').textContent = verse.ref;
   document.getElementById('vm-text').textContent = verse.text;
   document.getElementById('vm-note').value = ann.note || '';
-  document.getElementById('vm-fav-icon').textContent = ann.favorite ? '&#9733;' : '&#9733;';
+  document.getElementById('vm-fav-icon').textContent = ann.favorite ? '★' : '★';
   document.getElementById('vm-fav-btn').classList.toggle('active', !!ann.favorite);
 
   // Cores
@@ -1943,7 +1950,7 @@ function renderNoteFilters() {
   const wrap = document.getElementById('notes-filters');
   wrap.innerHTML = `
     <button class="chip active" data-filter="all">Todas</button>
-    <button class="chip" data-filter="favorites">&#9733; Favoritos</button>
+    <button class="chip" data-filter="favorites">★ Favoritos</button>
   `;
   state.tags.forEach(tag => {
     const btn = document.createElement('button');
@@ -1990,7 +1997,7 @@ function renderNotes(filter, search) {
     .sort((a, b) => b[1].date?.localeCompare(a[1].date) || 0);
 
   if(!entries.length) {
-    list.innerHTML = `<div class="empty-state"><div class="empty-icon">&#128221;</div><div class="empty-text">Nenhuma anotação encontrada.</div></div>`;
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">✎</div><div class="empty-text">Nenhuma anotação encontrada.</div></div>`;
     return;
   }
 
@@ -2002,7 +2009,7 @@ function renderNotes(filter, search) {
     })() : '';
     return `
       <div class="note-card" data-ref="${ref}">
-        <div class="note-ref">${ref} ${ann.favorite ? '&#9733;' : ''}</div>
+        <div class="note-ref">${ref} ${ann.favorite ? '★' : ''}</div>
         ${text ? `<div class="note-verse">"${text}"</div>` : ''}
         ${ann.note ? `<div class="note-text">${ann.note}</div>` : ''}
         ${ann.tags?.length ? `<div class="result-tags">${ann.tags.map(t => `<span class="result-tag">${t}</span>`).join('')}</div>` : ''}
@@ -2078,7 +2085,7 @@ function initStudies() {
 function renderStudies() {
   const list = document.getElementById('studies-list');
   if(!state.studies.length) {
-    list.innerHTML = `<div class="empty-state"><div class="empty-icon">&#128218;</div><div class="empty-text">Seus estudos bíblicos aparecerão aqui.</div></div>`;
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">✆</div><div class="empty-text">Seus estudos bíblicos aparecerão aqui.</div></div>`;
     return;
   }
   list.innerHTML = state.studies.map(s => `
@@ -2107,7 +2114,7 @@ function initSearch() {
   clearBtn.addEventListener('click', () => {
     input.value = '';
     clearBtn.style.display = 'none';
-    document.getElementById('search-results').innerHTML = `<div class="empty-state"><div class="empty-icon">&#128269;</div><div class="empty-text">Digite algo para buscar na Bíblia.</div></div>`;
+    document.getElementById('search-results').innerHTML = `<div class="empty-state"><div class="empty-icon">⌕</div><div class="empty-text">Digite algo para buscar na Bíblia.</div></div>`;
   });
 
   document.getElementById('search-filters').querySelectorAll('.chip').forEach(c => {
@@ -2124,7 +2131,7 @@ function doSearch(query, filter) {
   const results = document.getElementById('search-results');
 
   if(!query || query.length < 2) {
-    results.innerHTML = `<div class="empty-state"><div class="empty-icon">&#128269;</div><div class="empty-text">Digite algo para buscar na Bíblia.</div></div>`;
+    results.innerHTML = `<div class="empty-state"><div class="empty-icon">⌕</div><div class="empty-text">Digite algo para buscar na Bíblia.</div></div>`;
     return;
   }
 
@@ -2174,7 +2181,7 @@ function doSearch(query, filter) {
   }
 
   if(!found.length) {
-    results.innerHTML = `<div class="empty-state"><div class="empty-icon">&#128269;</div><div class="empty-text">Nenhum resultado para "<strong>${query}</strong>"</div></div>`;
+    results.innerHTML = `<div class="empty-state"><div class="empty-icon">⌕</div><div class="empty-text">Nenhum resultado para "<strong>${query}</strong>"</div></div>`;
     return;
   }
 
@@ -2186,7 +2193,7 @@ function doSearch(query, filter) {
     const tags = item.ann?.tags?.map(t => `<span class="result-tag">${t}</span>`).join('') || '';
     return `
       <div class="result-item" data-ref="${item.ref}" data-book="${item.book || ''}" data-chap="${item.chap || 0}" data-verse="${item.verse || 0}">
-        <div class="result-ref">${item.ref} ${item.ann?.favorite ? '&#9733;' : ''}</div>
+        <div class="result-ref">${item.ref} ${item.ann?.favorite ? '★' : ''}</div>
         <div class="result-text">${highlighted}</div>
         ${tags ? `<div class="result-tags">${tags}</div>` : ''}
       </div>
@@ -2221,9 +2228,101 @@ function showToast(msg) {
 // ============================================================
 
 
+// Drive
+const DRIVE_CLIENT_ID = '1041275094551-579hpt8v43ql3k9iip65kpds02hceef2.apps.googleusercontent.com';
+let driveToken = localStorage.getItem('driveToken') || null;
+let driveFileId = localStorage.getItem('driveFileId') || null;
+
+function driveSetStatus(status) {
+  var dot = document.getElementById('drive-dot');
+  var lbl = document.getElementById('drive-status');
+  if(!dot) return;
+  if(status === 'connected') {
+    dot.style.background = '#6db88a';
+    lbl.textContent = 'Drive conectado';
+  } else if(status === 'syncing') {
+    dot.style.background = '#c9a84c';
+    lbl.textContent = 'Sincronizando...';
+  } else {
+    dot.style.background = 'var(--text3)';
+    lbl.textContent = 'Drive: nao conectado';
+  }
+}
+
+function driveConnect() {
+  if(typeof google === 'undefined') {
+    var s = document.createElement('script');
+    s.src = 'https://accounts.google.com/gsi/client';
+    s.onload = function() { doSignIn(); };
+    document.head.appendChild(s);
+  } else { doSignIn(); }
+}
+
+function doSignIn() {
+  try {
+    var client = google.accounts.oauth2.initTokenClient({
+      client_id: DRIVE_CLIENT_ID,
+      scope: 'https://www.googleapis.com/auth/drive.appdata',
+      callback: function(r) {
+        if(r.error) { showToast('Erro Drive'); return; }
+        driveToken = r.access_token;
+        localStorage.setItem('driveToken', driveToken);
+        driveSetStatus('connected');
+        showToast('Drive conectado!');
+        driveLoad();
+      }
+    });
+    client.requestAccessToken();
+  } catch(e) { showToast('Erro: ' + e.message); }
+}
+
+async function driveSaveData() {
+  if(!driveToken) { showToast('Conecte o Drive primeiro'); return; }
+  driveSetStatus('syncing');
+  try {
+    if(!driveFileId) {
+      var sr = await fetch("https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='biblia-ara-dados.json'&fields=files(id)", {headers:{Authorization:'Bearer '+driveToken}});
+      var sd = await sr.json();
+      if(sd.files && sd.files.length > 0) {
+        driveFileId = sd.files[0].id;
+      } else {
+        var cr = await fetch('https://www.googleapis.com/drive/v3/files', {method:'POST',headers:{Authorization:'Bearer '+driveToken,'Content-Type':'application/json'},body:JSON.stringify({name:'biblia-ara-dados.json',parents:['appDataFolder']})});
+        var cd = await cr.json();
+        driveFileId = cd.id;
+      }
+      localStorage.setItem('driveFileId', driveFileId);
+    }
+    await fetch('https://www.googleapis.com/upload/drive/v3/files/'+driveFileId+'?uploadType=media', {method:'PATCH',headers:{Authorization:'Bearer '+driveToken,'Content-Type':'application/json'},body:JSON.stringify(state)});
+    driveSetStatus('connected');
+    showToast('Salvo no Drive!');
+  } catch(e) { driveSetStatus('disconnected'); showToast('Erro ao salvar'); }
+}
+
+async function driveLoad() {
+  if(!driveToken || !driveFileId) return;
+  try {
+    var r = await fetch('https://www.googleapis.com/drive/v3/files/'+driveFileId+'?alt=media', {headers:{Authorization:'Bearer '+driveToken}});
+    if(!r.ok) return;
+    var data = await r.json();
+    if(data.annotations) Object.assign(state.annotations, data.annotations);
+    if(data.planProgress) Object.assign(state.planProgress, data.planProgress);
+    if(data.studies) state.studies = data.studies;
+    saveState();
+    showToast('Dados do Drive carregados!');
+  } catch(e) {}
+}
+
+// Auto-reconectar
+if(driveToken) {
+  setTimeout(function() { driveSetStatus('connected'); driveLoad(); }, 1500);
+}
+
 // ============================================================
 // START
 // ============================================================
+// Auto-save Drive
+setInterval(function(){ if(driveToken) driveSaveData(); }, 3*60*1000);
+
 initLock();
 </script>
 </body>
