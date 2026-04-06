@@ -1042,7 +1042,6 @@ option { background: var(--bg2); }
 
   <!-- TABS -->
   <div class="tabs">
-    <button class="tab" data-tab="home">Início</button>
     <button class="tab active" data-tab="reader">Leitura</button>
     <button class="tab" data-tab="plan">Plano</button>
     <button class="tab" data-tab="notes">Anotações</button>
@@ -1052,53 +1051,6 @@ option { background: var(--bg2); }
 
   <!-- CONTEÚDO -->
   <div class="content">
-
-    <!-- HOME -->
-    <div class="page" id="page-home">
-      <div class="home-hero" id="home-hero">
-        <div class="home-date" id="home-date"></div>
-        <div class="home-verse-ref" id="home-verse-ref">Carregando...</div>
-        <div class="home-verse-text" id="home-verse-text"></div>
-      </div>
-
-      <div class="section-title">Leitura de Hoje</div>
-      <div class="today-card" id="today-card">
-        <div class="today-header">
-          <span class="today-badge" id="today-badge">Semana 1 · Dia 1</span>
-          <span class="today-week" id="today-progress-label">0/7 dias</span>
-        </div>
-        <div class="today-readings" id="today-readings">
-          <div class="loading"><div class="loading-cross">✝</div><div class="loading-text">Carregando plano...</div></div>
-        </div>
-      </div>
-
-      <div class="section-title">Progresso Anual</div>
-      <div class="today-card">
-        <div class="progress-bar-wrap">
-          <div class="progress-bar" id="annual-bar" style="width:0%"></div>
-        </div>
-        <div class="progress-label">
-          <span id="annual-days">0 dias lidos</span>
-          <span id="annual-pct">0%</span>
-        </div>
-      </div>
-
-      <div class="section-title">Resumo</div>
-      <div class="stats-grid">
-        <div class="stat-card">
-          <span class="stat-num" id="stat-notes">0</span>
-          <div class="stat-label">Anotações</div>
-        </div>
-        <div class="stat-card">
-          <span class="stat-num" id="stat-favs">0</span>
-          <div class="stat-label">Favoritos</div>
-        </div>
-        <div class="stat-card">
-          <span class="stat-num" id="stat-streak">0</span>
-          <div class="stat-label">Dias seguidos</div>
-        </div>
-      </div>
-    </div>
 
     <!-- LEITURA -->
     <div class="page active" id="page-reader">
@@ -1389,7 +1341,6 @@ async function initApp() {
   loadState();
   applyTheme();
   initTabs();
-  initHome();
   await loadBible();
   initReader();
   initPlan();
@@ -1587,8 +1538,8 @@ function initReader() {
   });
 
   updateChapSelect();
-  updateVerseSelect();
   renderChapter();
+  updateVerseSelect();
 
   // Navegação capítulo — topo
   document.getElementById('prev-chap').addEventListener('click', () => navigateChap(-1));
