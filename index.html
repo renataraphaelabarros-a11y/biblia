@@ -1523,89 +1523,104 @@ function updateStats() {
 function initReader() {
   if(!BIBLE) return;
 
-  // Popular livros
-  const bookSel = document.getElementById('select-book');
-  BOOKS_ORDER.forEach(b => {
-    if(BIBLE[b]) {
-      const opt = document.createElement('option');
-      opt.value = b; opt.textContent = b;
-      if(b === state.currentBook) opt.selected = true;
-      bookSel.appendChild(opt);
-    }
+  // --- POPULAR LIVROS ---
+  var bookSel = document.getElementById('select-book');
+  bookSel.innerHTML = '';
+  BOOKS_ORDER.forEach(function(b) {
+    if(!BIBLE[b]) return;
+    var o = document.createElement('option');
+    o.value = b; o.textContent = b;
+    if(b === state.currentBook) o.selected = true;
+    bookSel.appendChild(o);
   });
 
-  bookSel.addEventListener('change', () => {
-    state.currentBook = bookSel.value;
-    const chaps = Object.keys(BIBLE[state.currentBook]).map(Number).sort((a,b)=>a-b);
-    state.currentChap = chaps[0];
-    updateChapSelect();
-    updateVerseSelect();
-    renderChapter();
-    saveState();
-  });
-
-  updateChapSelect();
+  // --- POPULAR CAPS E VERSOS PARA O LIVRO ATUAL ---
+  popularChaps();
+  popularVersos();
   renderChapter();
-  updateVerseSelect();
 
-  // Navegação capítulo - topo
-  document.getElementById('prev-chap').addEventListener('click', () => navigateChap(-1));
-  document.getElementById('next-chap').addEventListener('click', () => navigateChap(1));
-
-  // Navegação capítulo - FINAL (espelha os do topo)
-  document.getElementById('prev-chap-bottom').addEventListener('click', () => navigateChap(-1));
-  document.getElementById('next-chap-bottom').addEventListener('click', () => navigateChap(1));
-
-  document.getElementById('select-chap').addEventListener('change', () => {
-    state.currentChap = parseInt(document.getElementById('select-chap').value);
+  // --- LISTENER LIVRO ---
+  bookSel.onchange = function() {
+    state.currentBook = bookSel.value;
+    // Pegar primeiro capitulo do livro
+    var caps = Object.keys(BIBLE[state.currentBook]).map(Number).sort(function(a,b){return a-b;});
+    state.currentChap = caps[0];
+    popularChaps();
+    popularVersos();
     renderChapter();
-    updateVerseSelect();
     saveState();
-  });
+  };
 
-  // Select de versículo
-  document.getElementById('select-verse').addEventListener('change', () => {
-    const v = document.getElementById('select-verse').value;
+  // --- LISTENER CAPITULO ---
+  document.getElementById('select-chap').onchange = function() {
+    var sel = document.getElementById('select-chap');
+    state.currentChap = parseInt(sel.value);
+    popularVersos();
+    renderChapter();
+    saveState();
+  };
+
+  // --- LISTENER VERSICULO ---
+  document.getElementById('select-verse').onchange = function() {
+    var sel = document.getElementById('select-verse');
+    var v = sel.value;
     if(!v) return;
-    // Rolar até o versículo
-    const el = document.querySelector(`.verse[data-verse="${v}"]`);
+    var el = document.querySelector('.verse[data-verse="' + v + '"]');
     if(el) {
       el.scrollIntoView({behavior:'smooth', block:'center'});
-      // Piscar suavemente para destacar
-      el.style.transition = 'background 0.1s';
       el.style.background = 'var(--gold-dim)';
-      setTimeout(() => { el.style.background = ''; }, 1200);
+      setTimeout(function(){ el.style.background = ''; }, 1200);
     }
-  });
+  };
+
+  // Navegacao anterior/proximo
+  document.getElementById('prev-chap').onclick = function(){ navigateChap(-1); };
+  document.getElementById('next-chap').onclick = function(){ navigateChap(1); };
+  document.getElementById('prev-chap-bottom').onclick = function(){ navigateChap(-1); };
+  document.getElementById('next-chap-bottom').onclick = function(){ navigateChap(1); };
 
   // Tamanho da fonte
   if(!state.fontSize) state.fontSize = 1.15;
   updateFontSizeLabel();
-
-  document.getElementById('font-up').addEventListener('click', () => {
+  document.getElementById('font-up').onclick = function() {
     state.fontSize = Math.min(+(state.fontSize + 0.1).toFixed(2), 2.0);
     document.getElementById('bible-text').style.fontSize = state.fontSize + 'rem';
-    updateFontSizeLabel();
-    saveState();
-  });
-  document.getElementById('font-down').addEventListener('click', () => {
+    updateFontSizeLabel(); saveState();
+  };
+  document.getElementById('font-down').onclick = function() {
     state.fontSize = Math.max(+(state.fontSize - 0.1).toFixed(2), 0.8);
     document.getElementById('bible-text').style.fontSize = state.fontSize + 'rem';
-    updateFontSizeLabel();
-    saveState();
+    updateFontSizeLabel(); saveState();
+  };
+}
+
+function popularChaps() {
+  var sel = document.getElementById('select-chap');
+  sel.innerHTML = '';
+  if(!BIBLE || !BIBLE[state.currentBook]) return;
+  var caps = Object.keys(BIBLE[state.currentBook]).map(Number).sort(function(a,b){return a-b;});
+  caps.forEach(function(c) {
+    var o = document.createElement('option');
+    o.value = c; o.textContent = 'Cap. ' + c;
+    if(c === state.currentChap) o.selected = true;
+    sel.appendChild(o);
   });
-
-
 }
 
-function updateFontSizeLabel() {
-  const pct = Math.round((state.fontSize / 1.15) * 100);
-  document.getElementById('font-size-label').textContent = pct + '%';
+function popularVersos() {
+  var sel = document.getElementById('select-verse');
+  sel.innerHTML = '<option value="">Vers.</option>';
+  if(!BIBLE || !BIBLE[state.currentBook] || !BIBLE[state.currentBook][state.currentChap]) return;
+  var chap = BIBLE[state.currentBook][state.currentChap];
+  Object.keys(chap).map(Number).sort(function(a,b){return a-b;}).forEach(function(v) {
+    var o = document.createElement('option');
+    o.value = v; o.textContent = v;
+    sel.appendChild(o);
+  });
 }
 
 
-
-function updateChapSelect() {
+function popularChaps() {
   const sel = document.getElementById('select-chap');
   sel.innerHTML = '';
   if(!BIBLE || !BIBLE[state.currentBook]) return;
@@ -1618,7 +1633,7 @@ function updateChapSelect() {
   });
 }
 
-function updateVerseSelect() {
+function popularVersos() {
   const sel = document.getElementById('select-verse');
   if(!sel || !BIBLE || !BIBLE[state.currentBook]) return;
   const chap = BIBLE[state.currentBook][state.currentChap];
@@ -1743,7 +1758,7 @@ function navigateChap(dir) {
   }
 
   document.getElementById('select-book').value = state.currentBook;
-  updateChapSelect();
+  popularChaps();
   renderChapter();
   window.scrollTo(0,0);
   saveState();
@@ -1761,7 +1776,7 @@ function openReadingInReader(reading) {
     state.currentChap = chap;
     document.querySelector('[data-tab="reader"]').click();
     document.getElementById('select-book').value = book;
-    updateChapSelect();
+    popularChaps();
     renderChapter();
     saveState();
   }
@@ -2008,6 +2023,17 @@ function initNotes() {
   });
 }
 
+
+function excluirAnotacao(event, ref) {
+  event.stopPropagation(); // nao navegar para o versiculo
+  if(!confirm('Excluir anotacao de ' + ref + '?')) return;
+  delete state.annotations[ref];
+  saveState();
+  renderNotes();
+  renderTags();
+  showToast('Anotacao excluida!');
+}
+
 function renderNotes(filter, search) {
   filter = filter || document.querySelector('#notes-filters .chip.active')?.dataset.filter || 'all';
   search = search ?? document.getElementById('notes-search').value;
@@ -2036,8 +2062,9 @@ function renderNotes(filter, search) {
       return BIBLE[m[1]]?.[m[2]]?.[m[3]] || '';
     })() : '';
     return `
-      <div class="note-card" data-ref="${ref}">
-        <div class="note-ref">${ref} ${ann.favorite ? '★' : ''}</div>
+      <div class="note-card" data-ref="${ref}" style="position:relative">
+        <button class="note-delete-btn" data-ref="${ref}" title="Excluir" style="position:absolute;top:8px;right:8px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:1rem;padding:2px 6px;border-radius:4px;line-height:1;" onclick="excluirAnotacao(event, '${ref}')">&#x2715;</button>
+        <div class="note-ref" style="padding-right:28px">${ref} ${ann.favorite ? '★' : ''}</div>
         ${text ? `<div class="note-verse">"${text}"</div>` : ''}
         ${ann.note ? `<div class="note-text">${ann.note}</div>` : ''}
         ${ann.tags?.length ? `<div class="result-tags">${ann.tags.map(t => `<span class="result-tag">${t}</span>`).join('')}</div>` : ''}
@@ -2062,8 +2089,8 @@ function renderNotes(filter, search) {
       document.getElementById('page-reader').classList.add('active');
       // Atualizar selects
       document.getElementById('select-book').value = book;
-      updateChapSelect();
-      updateVerseSelect();
+      popularChaps();
+      popularVersos();
       renderChapter();
       // Rolar ate o versículo
       setTimeout(() => {
