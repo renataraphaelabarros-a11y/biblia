@@ -1007,8 +1007,8 @@ option { background: var(--bg2); }
   <nav class="navbar">
     <div class="nav-brand">+ Bíblia ARA</div>
     <div class="nav-actions">
-      <button class="nav-btn" id="search-nav-btn" title="Buscar">[busca]</button>
-      <button class="nav-btn" id="theme-btn" title="Alternar tema">[tema]</button>
+      <button class="nav-btn" id="search-nav-btn" title="Buscar">&#128269;</button>
+      <button class="nav-btn" id="theme-btn" title="Alternar tema">&#9790;</button>
     </div>
   </nav>
 
@@ -1069,15 +1069,15 @@ option { background: var(--bg2); }
     <div class="page" id="page-notes">
       <div class="filter-chips" id="notes-filters">
         <button class="chip active" data-filter="all">Todas</button>
-        <button class="chip" data-filter="favorites">[fav] Favoritos</button>
+        <button class="chip" data-filter="favorites">&#9733; Favoritos</button>
       </div>
       <div class="search-wrap">
-        <span class="search-icon">[busca]</span>
+        <span class="search-icon">&#128269;</span>
         <input type="text" class="search-input" id="notes-search" placeholder="Buscar nas anotações...">
       </div>
       <div id="notes-list" class="notes-list">
         <div class="empty-state">
-          <div class="empty-icon">[nota]</div>
+          <div class="empty-icon">&#128221;</div>
           <div class="empty-text">Suas anotações aparecerão aqui.<br>Toque em um versículo para anotar.</div>
         </div>
       </div>
@@ -1085,7 +1085,7 @@ option { background: var(--bg2); }
 
     <!-- ESTUDOS -->
     <div class="page" id="page-studies">
-      <button class="study-btn" id="new-study-btn">[edit] Novo Estudo</button>
+      <button class="study-btn" id="new-study-btn">&#9998; Novo Estudo</button>
       <div class="study-editor" id="study-editor">
         <input type="text" class="study-title-input" id="study-title" placeholder="Título do estudo...">
         <textarea class="study-body-input" id="study-body" placeholder="Escreva suas reflexões. Use @Livro C:V para referenciar versículos (ex: @João 3:16)..."></textarea>
@@ -1094,7 +1094,7 @@ option { background: var(--bg2); }
       </div>
       <div id="studies-list">
         <div class="empty-state">
-          <div class="empty-icon">[livro]</div>
+          <div class="empty-icon">&#128218;</div>
           <div class="empty-text">Seus estudos bíblicos aparecerão aqui.</div>
         </div>
       </div>
@@ -1103,7 +1103,7 @@ option { background: var(--bg2); }
     <!-- BUSCA -->
     <div class="page" id="page-search">
       <div class="search-wrap">
-        <span class="search-icon">[busca]</span>
+        <span class="search-icon">&#128269;</span>
         <input type="text" class="search-input" id="search-input" placeholder="Buscar versículos, anotações...">
         <button class="search-clear" id="search-clear">x</button>
       </div>
@@ -1115,7 +1115,7 @@ option { background: var(--bg2); }
       </div>
       <div id="search-results">
         <div class="empty-state">
-          <div class="empty-icon">[busca]</div>
+          <div class="empty-icon">&#128269;</div>
           <div class="empty-text">Digite algo para buscar na Bíblia.</div>
         </div>
       </div>
@@ -1148,7 +1148,7 @@ option { background: var(--bg2); }
     </div>
 
     <button class="vm-fav-btn" id="vm-fav-btn">
-      <span id="vm-fav-icon">[fav]</span> Adicionar aos Favoritos
+      <span id="vm-fav-icon">&#9733;</span> Adicionar aos Favoritos
     </button>
     <button class="vm-save-btn" id="vm-save-btn">Salvar Anotação</button>
     <button class="vm-close-btn" id="vm-close-btn">Fechar</button>
@@ -1340,7 +1340,7 @@ async function loadBible() {
 // ============================================================
 function applyTheme() {
   document.documentElement.setAttribute('data-theme', state.theme);
-  document.getElementById('theme-btn').textContent = state.theme === 'dark' ? '[tema]' : '[tema]';
+  document.getElementById('theme-btn').textContent = state.theme === 'dark' ? '&#9790;' : '&#9790;';
 }
 
 // ============================================================
@@ -1640,7 +1640,7 @@ function renderChapter() {
     html += `<sup class="verse-num">${v}</sup>${chap[v]}`;
     html += `</span>`;
     if(note) {
-      html += `<span class="verse-inline-note" data-ref="${ref}">[edit] ${note}</span>`;
+      html += `<span class="verse-inline-note" data-ref="${ref}">&#9998; ${note}</span>`;
     }
     html += `</div>`;
   });
@@ -1822,7 +1822,7 @@ function initVerseModal() {
     const ann = state.annotations[currentVerse.ref] || {};
     ann.favorite = !ann.favorite;
     state.annotations[currentVerse.ref] = ann;
-    document.getElementById('vm-fav-icon').textContent = ann.favorite ? '[fav]' : '[fav]';
+    document.getElementById('vm-fav-icon').textContent = ann.favorite ? '&#9733;' : '&#9733;';
     document.getElementById('vm-fav-btn').classList.toggle('active', ann.favorite);
     saveState();
   });
@@ -1867,7 +1867,7 @@ function openVerseModal(verse) {
   document.getElementById('vm-ref').textContent = verse.ref;
   document.getElementById('vm-text').textContent = verse.text;
   document.getElementById('vm-note').value = ann.note || '';
-  document.getElementById('vm-fav-icon').textContent = ann.favorite ? '[fav]' : '[fav]';
+  document.getElementById('vm-fav-icon').textContent = ann.favorite ? '&#9733;' : '&#9733;';
   document.getElementById('vm-fav-btn').classList.toggle('active', !!ann.favorite);
 
   // Cores
@@ -1943,7 +1943,7 @@ function renderNoteFilters() {
   const wrap = document.getElementById('notes-filters');
   wrap.innerHTML = `
     <button class="chip active" data-filter="all">Todas</button>
-    <button class="chip" data-filter="favorites">[fav] Favoritos</button>
+    <button class="chip" data-filter="favorites">&#9733; Favoritos</button>
   `;
   state.tags.forEach(tag => {
     const btn = document.createElement('button');
@@ -1990,7 +1990,7 @@ function renderNotes(filter, search) {
     .sort((a, b) => b[1].date?.localeCompare(a[1].date) || 0);
 
   if(!entries.length) {
-    list.innerHTML = `<div class="empty-state"><div class="empty-icon">[nota]</div><div class="empty-text">Nenhuma anotação encontrada.</div></div>`;
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">&#128221;</div><div class="empty-text">Nenhuma anotação encontrada.</div></div>`;
     return;
   }
 
@@ -2002,7 +2002,7 @@ function renderNotes(filter, search) {
     })() : '';
     return `
       <div class="note-card" data-ref="${ref}">
-        <div class="note-ref">${ref} ${ann.favorite ? '[fav]' : ''}</div>
+        <div class="note-ref">${ref} ${ann.favorite ? '&#9733;' : ''}</div>
         ${text ? `<div class="note-verse">"${text}"</div>` : ''}
         ${ann.note ? `<div class="note-text">${ann.note}</div>` : ''}
         ${ann.tags?.length ? `<div class="result-tags">${ann.tags.map(t => `<span class="result-tag">${t}</span>`).join('')}</div>` : ''}
@@ -2078,7 +2078,7 @@ function initStudies() {
 function renderStudies() {
   const list = document.getElementById('studies-list');
   if(!state.studies.length) {
-    list.innerHTML = `<div class="empty-state"><div class="empty-icon">[livro]</div><div class="empty-text">Seus estudos bíblicos aparecerão aqui.</div></div>`;
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">&#128218;</div><div class="empty-text">Seus estudos bíblicos aparecerão aqui.</div></div>`;
     return;
   }
   list.innerHTML = state.studies.map(s => `
@@ -2107,7 +2107,7 @@ function initSearch() {
   clearBtn.addEventListener('click', () => {
     input.value = '';
     clearBtn.style.display = 'none';
-    document.getElementById('search-results').innerHTML = `<div class="empty-state"><div class="empty-icon">[busca]</div><div class="empty-text">Digite algo para buscar na Bíblia.</div></div>`;
+    document.getElementById('search-results').innerHTML = `<div class="empty-state"><div class="empty-icon">&#128269;</div><div class="empty-text">Digite algo para buscar na Bíblia.</div></div>`;
   });
 
   document.getElementById('search-filters').querySelectorAll('.chip').forEach(c => {
@@ -2124,7 +2124,7 @@ function doSearch(query, filter) {
   const results = document.getElementById('search-results');
 
   if(!query || query.length < 2) {
-    results.innerHTML = `<div class="empty-state"><div class="empty-icon">[busca]</div><div class="empty-text">Digite algo para buscar na Bíblia.</div></div>`;
+    results.innerHTML = `<div class="empty-state"><div class="empty-icon">&#128269;</div><div class="empty-text">Digite algo para buscar na Bíblia.</div></div>`;
     return;
   }
 
@@ -2174,7 +2174,7 @@ function doSearch(query, filter) {
   }
 
   if(!found.length) {
-    results.innerHTML = `<div class="empty-state"><div class="empty-icon">[busca]</div><div class="empty-text">Nenhum resultado para "<strong>${query}</strong>"</div></div>`;
+    results.innerHTML = `<div class="empty-state"><div class="empty-icon">&#128269;</div><div class="empty-text">Nenhum resultado para "<strong>${query}</strong>"</div></div>`;
     return;
   }
 
@@ -2186,7 +2186,7 @@ function doSearch(query, filter) {
     const tags = item.ann?.tags?.map(t => `<span class="result-tag">${t}</span>`).join('') || '';
     return `
       <div class="result-item" data-ref="${item.ref}" data-book="${item.book || ''}" data-chap="${item.chap || 0}" data-verse="${item.verse || 0}">
-        <div class="result-ref">${item.ref} ${item.ann?.favorite ? '[fav]' : ''}</div>
+        <div class="result-ref">${item.ref} ${item.ann?.favorite ? '&#9733;' : ''}</div>
         <div class="result-text">${highlighted}</div>
         ${tags ? `<div class="result-tags">${tags}</div>` : ''}
       </div>
