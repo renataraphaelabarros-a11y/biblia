@@ -2271,7 +2271,10 @@ function doSignIn() {
         driveToken = r.access_token;
         localStorage.setItem('driveToken', driveToken);
         driveSetStatus('connected');
-        showToast('Drive conectado!');
+        // Atualizar botao para Salvar
+        var btn = document.querySelector('#drive-bar button');
+        if(btn) { btn.textContent = 'Salvar'; btn.onclick = driveSaveData; }
+        showToast('Drive conectado! Carregando dados...');
         driveLoad();
       }
     });
@@ -2302,22 +2305,47 @@ async function driveSaveData() {
 }
 
 async function driveLoad() {
-  if(!driveToken || !driveFileId) return;
+  if(!driveToken) return;
+  driveSetStatus('syncing');
   try {
+    // Sempre buscar o arquivo - pode nao ter driveFileId salvo neste dispositivo
+    var sr = await fetch("https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='biblia-ara-dados.json'&fields=files(id)", {headers:{Authorization:'Bearer '+driveToken}});
+    var sd = await sr.json();
+    if(!sd.files || sd.files.length === 0) {
+      driveSetStatus('connected');
+      showToast('Drive conectado! Nenhum dado salvo ainda.');
+      return;
+    }
+    driveFileId = sd.files[0].id;
+    localStorage.setItem('driveFileId', driveFileId);
     var r = await fetch('https://www.googleapis.com/drive/v3/files/'+driveFileId+'?alt=media', {headers:{Authorization:'Bearer '+driveToken}});
-    if(!r.ok) return;
+    if(!r.ok) { driveSetStatus('connected'); return; }
     var data = await r.json();
     if(data.annotations) Object.assign(state.annotations, data.annotations);
     if(data.planProgress) Object.assign(state.planProgress, data.planProgress);
-    if(data.studies) state.studies = data.studies;
+    if(data.studies && data.studies.length) state.studies = data.studies;
+    if(data.tags && data.tags.length) state.tags = [...new Set([...state.tags, ...data.tags])];
     saveState();
-    showToast('Dados do Drive carregados!');
-  } catch(e) {}
+    driveSetStatus('connected');
+    // Atualizar UI com dados carregados
+    renderNotes();
+    renderStudies();
+    updateStats();
+    showToast('Anotacoes sincronizadas do Drive!');
+  } catch(e) {
+    driveSetStatus('disconnected');
+    showToast('Erro ao carregar Drive');
+  }
 }
 
 // Auto-reconectar
 if(driveToken) {
-  setTimeout(function() { driveSetStatus('connected'); driveLoad(); }, 1500);
+  setTimeout(function() {
+    driveSetStatus('connected');
+    var btn = document.querySelector('#drive-bar button');
+    if(btn) { btn.textContent = 'Salvar'; btn.onclick = driveSaveData; }
+    driveLoad();
+  }, 1500);
 }
 
 // ============================================================
