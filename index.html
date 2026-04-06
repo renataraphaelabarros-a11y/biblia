@@ -1323,6 +1323,7 @@ async function initApp() {
   loadState();
   applyTheme();
   initTabs();
+  initDriveUI(); // inicializar Drive UI aqui, quando DOM ja existe
   await loadBible();
   initReader();
   initPlan();
@@ -1332,6 +1333,18 @@ async function initApp() {
   initVerseModal();
   initTagModal();
   updateStats();
+}
+
+function initDriveUI() {
+  // Agora o DOM existe - seguro chamar
+  if(driveToken) {
+    setTimeout(function() {
+      driveSetStatus('connected');
+      driveLoad();
+    }, 2000);
+  } else {
+    driveSetStatus('disconnected');
+  }
 }
 
 async function loadBible() {
@@ -2402,17 +2415,7 @@ async function driveLoad() {
   }
 }
 
-// Auto-reconectar
-window.addEventListener('DOMContentLoaded', function() {
-  if(driveToken) {
-    setTimeout(function() {
-      driveSetStatus('connected');
-      var btn = document.querySelector('#drive-bar button');
-      if(btn) { btn.textContent = 'Salvar'; btn.onclick = driveSaveData; }
-      driveLoad();
-    }, 2000);
-  }
-});
+// Drive inicializado via initDriveUI() dentro do initApp()
 
 // ============================================================
 // START
