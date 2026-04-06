@@ -2287,54 +2287,115 @@ async function driveSaveData() {
   driveSetStatus('syncing');
   try {
     if(!driveFileId) {
-      var sr = await fetch("https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='biblia-ara-dados.json'&fields=files(id)", {headers:{Authorization:'Bearer '+driveToken}});
+      var sr = await fetch(
+        "https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name%3D'biblia-ara-dados.json'&fields=files(id)",
+        {headers:{Authorization:'Bearer '+driveToken}}
+      );
       var sd = await sr.json();
       if(sd.files && sd.files.length > 0) {
         driveFileId = sd.files[0].id;
       } else {
-        var cr = await fetch('https://www.googleapis.com/drive/v3/files', {method:'POST',headers:{Authorization:'Bearer '+driveToken,'Content-Type':'application/json'},body:JSON.stringify({name:'biblia-ara-dados.json',parents:['appDataFolder']})});
+        var cr = await fetch('https://www.googleapis.com/drive/v3/files',
+          {method:'POST',
+           headers:{Authorization:'Bearer '+driveToken,'Content-Type':'application/json'},
+           body:JSON.stringify({name:'biblia-ara-dados.json',parents:['appDataFolder']})
+          });
         var cd = await cr.json();
         driveFileId = cd.id;
+        console.log('Arquivo criado no Drive:', driveFileId);
       }
       localStorage.setItem('driveFileId', driveFileId);
     }
-    await fetch('https://www.googleapis.com/upload/drive/v3/files/'+driveFileId+'?uploadType=media', {method:'PATCH',headers:{Authorization:'Bearer '+driveToken,'Content-Type':'application/json'},body:JSON.stringify(state)});
+    // Salvar apenas dados essenciais (nao o texto da Biblia)
+    var dadosSalvar = {
+      annotations: state.annotations,
+      planProgress: state.planProgress,
+      studies: state.studies,
+      tags: state.tags,
+    };
+    var resp = await fetch(
+      'https://www.googleapis.com/upload/drive/v3/files/'+driveFileId+'?uploadType=media',
+      {method:'PATCH',
+       headers:{Authorization:'Bearer '+driveToken,'Content-Type':'application/json'},
+       body:JSON.stringify(dadosSalvar)
+      }
+    );
+    if(!resp.ok) {
+      console.error('Save error:', resp.status, await resp.text());
+      showToast('Erro ao salvar: ' + resp.status);
+      driveSetStatus('disconnected');
+      return;
+    }
     driveSetStatus('connected');
-    showToast('Salvo no Drive!');
-  } catch(e) { driveSetStatus('disconnected'); showToast('Erro ao salvar'); }
+    var n = Object.keys(state.annotations).length;
+    showToast('Drive: ' + n + ' anotacoes salvas!');
+  } catch(e) {
+    console.error('driveSaveData error:', e);
+    driveSetStatus('disconnected');
+    showToast('Erro ao salvar: ' + e.message);
+  }
 }
 
 async function driveLoad() {
   if(!driveToken) return;
   driveSetStatus('syncing');
   try {
-    // Sempre buscar o arquivo - pode nao ter driveFileId salvo neste dispositivo
-    var sr = await fetch("https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='biblia-ara-dados.json'&fields=files(id)", {headers:{Authorization:'Bearer '+driveToken}});
-    var sd = await sr.json();
-    if(!sd.files || sd.files.length === 0) {
-      driveSetStatus('connected');
-      showToast('Drive conectado! Nenhum dado salvo ainda.');
+    // Buscar arquivo no Drive
+    var sr = await fetch(
+      "https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name%3D'biblia-ara-dados.json'&fields=files(id,name)",
+      {headers:{Authorization:'Bearer '+driveToken}}
+    );
+    if(!sr.ok) {
+      var errText = await sr.text();
+      console.error('Drive search error:', sr.status, errText);
+      showToast('Erro Drive: ' + sr.status + ' - reconecte');
+      driveSetStatus('disconnected');
+      localStorage.removeItem('driveToken');
+      driveToken = null;
       return;
     }
+    var sd = await sr.json();
+    console.log('Drive search result:', JSON.stringify(sd));
+
+    if(!sd.files || sd.files.length === 0) {
+      driveSetStatus('connected');
+      showToast('Drive conectado! Sem dados salvos ainda.');
+      return;
+    }
+
     driveFileId = sd.files[0].id;
     localStorage.setItem('driveFileId', driveFileId);
-    var r = await fetch('https://www.googleapis.com/drive/v3/files/'+driveFileId+'?alt=media', {headers:{Authorization:'Bearer '+driveToken}});
-    if(!r.ok) { driveSetStatus('connected'); return; }
+    console.log('File ID:', driveFileId);
+
+    var r = await fetch(
+      'https://www.googleapis.com/drive/v3/files/'+driveFileId+'?alt=media',
+      {headers:{Authorization:'Bearer '+driveToken}}
+    );
+    if(!r.ok) {
+      console.error('Drive fetch error:', r.status);
+      driveSetStatus('connected');
+      showToast('Erro ao baixar dados: ' + r.status);
+      return;
+    }
+
     var data = await r.json();
+    console.log('Drive data keys:', Object.keys(data));
+
+    var notasCount = data.annotations ? Object.keys(data.annotations).length : 0;
     if(data.annotations) Object.assign(state.annotations, data.annotations);
     if(data.planProgress) Object.assign(state.planProgress, data.planProgress);
     if(data.studies && data.studies.length) state.studies = data.studies;
     if(data.tags && data.tags.length) state.tags = [...new Set([...state.tags, ...data.tags])];
     saveState();
     driveSetStatus('connected');
-    // Atualizar UI com dados carregados
     renderNotes();
     renderStudies();
     updateStats();
-    showToast('Anotacoes sincronizadas do Drive!');
+    showToast('Drive: ' + notasCount + ' anotacoes carregadas!');
   } catch(e) {
+    console.error('driveLoad exception:', e);
     driveSetStatus('disconnected');
-    showToast('Erro ao carregar Drive');
+    showToast('Erro Drive: ' + e.message);
   }
 }
 
