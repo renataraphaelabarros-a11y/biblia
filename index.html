@@ -57,7 +57,7 @@
 
 /* ===== RESET ===== */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { font-size: 16px; }
+html { font-size: 18px; }
 body {
   font-family: 'Inter', sans-serif;
   background: var(--bg);
@@ -957,6 +957,57 @@ option { background: var(--bg2); }
 </head>
 <body>
 
+<!-- Gerar ícone via canvas -->
+<script>
+(function(){
+  try {
+    var c = document.createElement('canvas');
+    c.width = c.height = 256;
+    var ctx = c.getContext('2d');
+    // Fundo
+    var r = 40;
+    ctx.beginPath();
+    ctx.moveTo(r,0); ctx.lineTo(256-r,0);
+    ctx.quadraticCurveTo(256,0,256,r);
+    ctx.lineTo(256,256-r);
+    ctx.quadraticCurveTo(256,256,256-r,256);
+    ctx.lineTo(r,256); ctx.quadraticCurveTo(0,256,0,256-r);
+    ctx.lineTo(0,r); ctx.quadraticCurveTo(0,0,r,0);
+    ctx.closePath();
+    ctx.fillStyle='#0d1b2a'; ctx.fill();
+    // Livro fundo
+    ctx.fillStyle='#1e3352';
+    ctx.beginPath();
+    ctx.roundRect(30,40,190,170,10);
+    ctx.fill();
+    // Lombada
+    ctx.fillStyle='#c9a84c';
+    ctx.beginPath();
+    ctx.roundRect(30,40,18,170,8);
+    ctx.fill();
+    // Linhas de texto
+    ctx.fillStyle='rgba(201,168,76,0.5)';
+    [80,105,130,155,175].forEach(function(y,i){
+      ctx.fillRect(60, y, i===4?100:130, 8);
+    });
+    // Cruz
+    ctx.fillStyle='#c9a84c';
+    ctx.fillRect(148,65,14,80); // vertical
+    ctx.fillRect(128,95,54,14); // horizontal
+    // Setar como favicon
+    var link = document.querySelector("link[rel~='icon']") || document.createElement('link');
+    link.rel = 'icon'; link.type = 'image/png';
+    link.href = c.toDataURL('image/png');
+    document.head.appendChild(link);
+    // Apple touch icon
+    var apple = document.querySelector("link[rel='apple-touch-icon']") || document.createElement('link');
+    apple.rel = 'apple-touch-icon';
+    apple.href = c.toDataURL('image/png');
+    document.head.appendChild(apple);
+  } catch(e){}
+})();
+</script>
+
 <!-- TELA DE SENHA -->
 <div id="lock-screen">
   <div class="lock-cross">✝</div>
@@ -991,8 +1042,8 @@ option { background: var(--bg2); }
 
   <!-- TABS -->
   <div class="tabs">
-    <button class="tab active" data-tab="home">Início</button>
-    <button class="tab" data-tab="reader">Leitura</button>
+    <button class="tab" data-tab="home">Início</button>
+    <button class="tab active" data-tab="reader">Leitura</button>
     <button class="tab" data-tab="plan">Plano</button>
     <button class="tab" data-tab="notes">Anotações</button>
     <button class="tab" data-tab="studies">Estudos</button>
@@ -1003,7 +1054,7 @@ option { background: var(--bg2); }
   <div class="content">
 
     <!-- HOME -->
-    <div class="page active" id="page-home">
+    <div class="page" id="page-home">
       <div class="home-hero" id="home-hero">
         <div class="home-date" id="home-date"></div>
         <div class="home-verse-ref" id="home-verse-ref">Carregando...</div>
@@ -1050,7 +1101,7 @@ option { background: var(--bg2); }
     </div>
 
     <!-- LEITURA -->
-    <div class="page" id="page-reader">
+    <div class="page active" id="page-reader">
       <div class="reader-nav">
         <select class="select-book" id="select-book"></select>
         <select class="select-chap" id="select-chap"></select>
@@ -1527,13 +1578,16 @@ function initReader() {
 
   bookSel.addEventListener('change', () => {
     state.currentBook = bookSel.value;
-    state.currentChap = 1;
+    const chaps = Object.keys(BIBLE[state.currentBook]).map(Number).sort((a,b)=>a-b);
+    state.currentChap = chaps[0];
     updateChapSelect();
+    updateVerseSelect();
     renderChapter();
     saveState();
   });
 
   updateChapSelect();
+  updateVerseSelect();
   renderChapter();
 
   // Navegação capítulo — topo
@@ -1547,6 +1601,7 @@ function initReader() {
   document.getElementById('select-chap').addEventListener('change', () => {
     state.currentChap = parseInt(document.getElementById('select-chap').value);
     renderChapter();
+    updateVerseSelect();
     saveState();
   });
 
@@ -1601,6 +1656,19 @@ function updateChapSelect() {
     const opt = document.createElement('option');
     opt.value = c; opt.textContent = 'Cap. ' + c;
     if(c === state.currentChap) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
+function updateVerseSelect() {
+  const sel = document.getElementById('select-verse');
+  if(!sel || !BIBLE || !BIBLE[state.currentBook]) return;
+  const chap = BIBLE[state.currentBook][state.currentChap];
+  if(!chap) return;
+  sel.innerHTML = '<option value="">Vers.</option>';
+  Object.keys(chap).map(Number).sort((a,b)=>a-b).forEach(v => {
+    const opt = document.createElement('option');
+    opt.value = v; opt.textContent = v;
     sel.appendChild(opt);
   });
 }
@@ -2211,8 +2279,8 @@ const GDRIVE_CLIENT_ID = '1041275094551-579hpt8v43ql3k9iip65kpds02hceef2.apps.go
 const GDRIVE_FILE_NAME = 'biblia-ara-dados.json';
 const GDRIVE_SCOPES = 'https://www.googleapis.com/auth/drive.appdata';
 
-let driveToken = null;
-let driveFileId = null;
+let driveToken = localStorage.getItem('driveToken') || null;
+let driveFileId = localStorage.getItem('driveFileId') || null;
 
 function driveIsConfigured() {
   return GDRIVE_CLIENT_ID.length > 10; // sempre true quando Client ID está preenchido
@@ -2258,6 +2326,7 @@ async function driveSignIn() {
       callback: (response) => {
         if(response.error) { updateDriveUI('error'); reject(response.error); return; }
         driveToken = response.access_token;
+        localStorage.setItem('driveToken', driveToken);
         updateDriveUI('connected');
         resolve(response.access_token);
       }
@@ -2275,6 +2344,7 @@ async function driveFindOrCreateFile() {
   const searchData = await searchRes.json();
   if(searchData.files && searchData.files.length > 0) {
     driveFileId = searchData.files[0].id;
+    localStorage.setItem('driveFileId', driveFileId);
     return driveFileId;
   }
   // Criar novo arquivo
@@ -2285,6 +2355,7 @@ async function driveFindOrCreateFile() {
   });
   const createData = await createRes.json();
   driveFileId = createData.id;
+  localStorage.setItem('driveFileId', driveFileId);
   return driveFileId;
 }
 
@@ -2390,29 +2461,26 @@ setInterval(() => { if(driveToken) driveSave(); }, 5 * 60 * 1000);
 
 initDriveSDK();
 
+// Auto-reconectar se tinha token salvo
+if(driveToken) {
+  updateDriveUI('connected');
+  // Tentar carregar dados do Drive silenciosamente
+  setTimeout(() => {
+    driveLoad().catch(() => {
+      // Token expirou — limpar e pedir novo login
+      driveToken = null;
+      driveFileId = null;
+      localStorage.removeItem('driveToken');
+      localStorage.removeItem('driveFileId');
+      updateDriveUI('disconnected');
+    });
+  }, 2000);
+}
+
 // ============================================================
 // MANIFEST PWA (gerado dinamicamente)
 // ============================================================
-function injectManifest() {
-  const manifest = {
-    name: 'Bíblia Sagrada ARA',
-    short_name: 'Bíblia ARA',
-    description: 'Bíblia Almeida Revista e Atualizada — Estudo pessoal',
-    start_url: './',
-    display: 'standalone',
-    background_color: '#0d1b2a',
-    theme_color: '#0d1b2a',
-    icons: [
-      { src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAgAAAAIACAYAAAD0eNT6AAANoUlEQVR4nO3dP24bSRrG4ZZBTDCEA2cDOJto4HNspniOoBMsNmc+mBPoCBsrm3MYjjYz4EyBwQk28QYLGhItUvxT1VVd7/PkOywK2/x+/Fpq30wc9fb9h2+tzwDAZb5+/njT+gy98oOZDHmAROlxEPnmDXwA9qUFQcSbNfABONfoQTDsmzP0AShlxBgY6g0Z+gDUNkoMDPEmDH4A5rb0EFj04Q1+AFpbaggs8tAGPwC9WVoILOqwBj8AvVtKCCzikAY/AEvTewh0fTiDH4Cl6zUE3rQ+wCGGPwAj6HWedVclvf6gAOBaPW0DutoAGP4AjKynOddFifT0AwGAObTeBjTfABj+ACRqPf+aBkDrNw8ALbWcg03WDwY/ADw39y2B2TcAhj8A/Gju+ThrABj+AHDYnHNytgAw/AHgdXPNy1kCwPAHgNPNMTerB4DhDwDnqz0/qwaA4Q8Al6s5R6sFgOEPANerNU+rBIDhDwDl1JirxQPA8AeA8krP16IBYPgDQD0l52yxADD8AaC+UvO2+b8GCADMr0gA+PYPAPMpMXevDgDDHwDmd+38vSoADH8AaOeaOex3AAAg0MUB4Ns/ALR36Ty+KAAMfwDoxyVz2S0AAAh0dgD49g8A/Tl3Pp8VAIY/APTrnDntFgAABDo5AHz7B4D+nTqvbQAAINBJAeDbPwAsxylz2wYAAAK9GgC+/QPA8rw2v20AACDQ0QDw7R8AluvYHLcBAIBABwPAt38AWL5D89wGAAACvRgAvv0DwDhemus2AAAQSAAAQKAfAsD6HwDGsz/fbQAAIJAAAIBAzwLA+h8AxvV0ztsAAEAgAQAAgQQAAAT6HgDu/wPA+Hbz3gYAAAIJAAAIJAAAINDNNLn/DwBpbAAAIJAAAIBAAgAAAgkAAAgkAAAgkAAAgEBv/AkgAOSxAQCAQAIAAAIJAAAIJAAAIJAAAIBAAgAAAgkAAAi0an2Anv31568X/29//+OngicByPT45VPrIwzrxoOAnrtm6B8iBgCuJwbKcgvgiRrDf5qm6d//+m+V/y5Akne//Da9++W31scYhg3AVG/wv8Q2AKAMG4HrxG8A5hz+02QbAFCKbcB1ogNg7uG/IwIAyhABl4sOAACWTwRcJjYAWn3737EFAChHBJwvMgBaD/8dEQBQjgg4T2QAADAmEXA6AQAAgeICoJf1/47bAABl2QKcJi4AAAABAMCAbAFeJwAAIJAAAIBAAgCAIbkNcJwAAIBAAgAAAgkAAAi0an0Ayvt7+9j6CAAn+3n9rvURIgmAgRj8wBLtPruEwLzcAhiE4Q8snc+xeQmAAbhogFH4PJuPAFg4FwswGp9r8xAAC+YiAUbl860+AQAAgQTAQqljYHQ+5+oSAAAQSAAAQCABAACBBAAABBIAABBIAABAIAEAAIEEAAAEEgAAEEgAAEAgAQAAgQQAAAQSAAAQSAAAQCABAACBBAAABBIAABBIAABAIAEAAIEEAAAEEgAAEEgAAECgVesDALzmYbOu/hq3m23114Ce2AAAQCABAACBBAAABBIAABBIAABAIAEAAIEEAAAEEgAAEEgAAEAgAQAAgQQAAAQSAAAQSAAAQCABAACBBAAABBIAABBIAABAIAEAAIEEAAAEEgAAEEgAAEAgAQAAgQQAAAQSAAAQSAAAQCABAACBBAAABBIAABBIAABAoFXrA9CHh836rvUZ4Ij72i/gGnjudrOt/jOnLRsAAAgkAAAgkAAAgEACAAACCQAACCQAACCQAACAQAIAAAIJAAAIJAAAIJBHATNNk8d+0reHzbr6a7gGSGMDAACBBAAABBIAABBIAABAIAEAAIEEAAAEEgAAEEgAAEAgDwICvpvjgTu96vW93262rY/AoGwAACCQAACAQAIAAAIJAAAIJAAAIJAAAIBAAgAAAgkAAAgkAAAgkAAAgEACAAACCQAACCQAACCQAACAQAIAAAKtWh+APjxs1netz0AX7lsfgOdaXZu3m63/LwzOBgAAAgkAAAgkAAAgkAAAgEACAAACCQAACCQAACCQAACAQAIAAAIJAAAI5FHATNPksZ/838Nm3foI7HFtUosNAAAEEgAAEEgAAEAgAQAAgQQAAATyVwDAd7ebbesjvGiOv07o9b1DLTYAABBIAABAIAEAAIEEAAAEEgAAEEgAAEAgAQAAgQQAAAQSAAAQSAAAQCABAACBBAAABBIAABBIAABAIAEAAIEEAAAEEgAAEEgAAECgVesD0IeHzfqu9RngiPvaLzD3NXC72VZ/T3CMDQAABBIAABBIAABAIAEAAIEEAAAEEgAAEEgAAEAgAQAAgQQAAAQSAAAQyKOAmabJY0np28NmXf01XAOksQEAgEACAAACCQAACCQAACCQAACAQAIAAAIJAAAIJAAAIJAAAIBAAgAAAgkAAAgkAAAgkAAAgEACAAACCQAACCQAACCQAACAQAIAAAIJAAAIJAAAIJAAAIBAAgAAAgkAAAgkAAAg0Kr1AejDw2Z91/oMcMR97RdwDTx3u9lW/5nTlg0AAAQSAAAQyC0AYAms56EwGwAACCQAACCQAACAQAIAAAIJAAAIJAAAIJAAAIBAngPANE0e+wmQxgYAAAIJAAAIJAAAIJAAAIBAAgAAAgkAAAgkAAAgkAAAgEACAAACCQAACCQAACCQAACAQAIAAAIJAAAIJAAAIJAAAIBAAgAAAgkAAAgkAAAgkAAAgEACAAACCQAACCQAACCQAACAQKvWB6APD5v1XeszAP243WzvW5+BumwAACCQAACAQAIAAAIJAAAIJAAAIJAAAIBAAgAAAgkAAAgkAAAgkAAAgEAeBcw0TR77CZDGBgAAAgkAAAgkAAAgkAAAgEACAAACCQAACCQAACCQAACAQAIAAAIJAAAIJAAAIJAAAIBAAgAAAgkAAAgkAAAgkAAAgEACAAACCQAACCQAACCQAACAQAIAAAIJAAAIJAAAIJAAAIBAq9YHoA8Pm/Vd6zNAktvN9r71GchmAwAAgQQAAAQSAAAQSAAAQCABAACBBAAABBIAABBIAABAIAEAAIEEAAAE8ihgpmnyWFKANDYAABBIAABAIAEAAIEEAAAEEgAAEEgAAEAgAQAAgQQAAAQSAAAQSAAAQCABAACBBAAABBIAABBIAABAIAEAAIEEAAAEEgAAEEgAAEAgAQAAgQQAAAQSAAAQSAAAQCABAACBBAAABBIAABBIAABAIAEAAIEEAAAEEgAAEEgAAEAgAQAAgQQAAAQSAAAQSAAAQCABAACBBAAABBIAABBIAABAIAEAAIEEAAAEEgAAEEgAAEAgAbBQP6/ftT4CQFU+5+oSAAAQSAAsmDoGRuXzrT4BsHAuEmA0PtfmIQAG4GIBRuHzbD4CYBAuGmDpfI7Na9X6AJSzu3j+3j42PgnA6Qz+NgTAgFxMALzGLQAACCQAACCQAACAQAIAgCE9fvnU+ghdEwAAEEgAAEAgAQDAcKz/XycAACBQXAD845//aX2EZ37/46fWRwAYim//p4kLAABAAAAwEN/+TxcZAL3cBrD+ByjH8D9PZABMU/sIMPwByjH8zxcbAACMwfC/THQAtNoC+PYPUIbhf7noAJim+SPA8Acow/C/zs3b9x++tT5EL/7689dq/22DH6AMg7+M+A3AU7W2AYY/wPUev3wy/AuyATjimo2AoQ9wPQO/HgEAAIHcAgCAQAIAAAIJAAAIJAAAIJAAAIBAAgAAAgkAAAgkAAAgkAAAgEACAAACCQAACCQAACCQAACAQAIAAAIJAAAIJAAAIJAAAIBAAgAAAgkAAAj05uvnjzetDwEAzMsGAAACCQAACCQAACCQAACAQAIAAAIJAAAI9GaapsmfAgJAjq+fP97YAABAIAEAAIEEAAAE+h4Afg8AAMa3m/c2AAAQSAAAQCABAACBngWA3wMAgHE9nfM2AAAQSAAAQKAfAsBtAAAYz/58twEAgEACAAACvRgAbgMAwDhemus2AAAQ6GAA2AIAwPIdmuc2AAAQ6GgA2AIAwHIdm+M2AAAQ6NUAsAUAgOV5bX7bAABAoJMCwBYAAJbjlLltAwAAgU4OAFsAAOjfqfPaBgAAAp0VALYAANCvc+b02RsAEQAA/Tl3PrsFAACBLgoAWwAA6Mclc/niDYAIAID2Lp3HbgEAQKCrAsAWAADauWYOX70BEAEAML9r52+RWwAiAADmU2Lu+h0AAAhULABsAQCgvlLztugGQAQAQD0l52zxWwAiAADKKz1fq/wOgAgAgHJqzNVqvwQoAgDgerXmadW/AhABAHC5mnO0+p8BigAAOF/t+TnLcwBEAACcbo65OduDgEQAALxurnk565MARQAAHDbnnJz9UcAiAAB+NPd8bDqM377/8K3l6wNAa62+GDf9x4BsAwBI1nIONv/XAEUAAIlaz7+uhq9bAgCMrvXg32m+AXiqlx8KANTQ05zr5iD7bAMAGEVPg3+nqw3AUz3+sADgXL3Osy4Ptc82AICl6XXw73R9uH1CAIDe9T74dxZxyH1CAIDeLGXw7yzqsPuEAACtLW3w7yzy0PuEAABzW+rg31n04fcJAQBqW/rg3xniTbxEDABQyihD/6nh3tBLxAAA5xpx6D819Js7RBAAsG/0gb8v6s0eIggA8qQN/H3/AzcmS+nJJnJQAAAAAElFTkSuQmCC", sizes: "512x512", type: "image/png", purpose: "any maskable" }
-    ]
-  };
-  const blob = new Blob([JSON.stringify(manifest)], {type:'application/json'});
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('link');
-  link.rel = 'manifest'; link.href = url;
-  document.head.appendChild(link);
-}
-injectManifest();
+
 
 // ============================================================
 // START
