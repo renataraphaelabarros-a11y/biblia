@@ -1343,6 +1343,8 @@ async function initApp() {
   initVerseModal();
   initTagModal();
   updateStats();
+  // Auto-save Drive a cada 3 minutos (DOM ja existe aqui)
+  setInterval(function(){ if(driveToken) driveSaveData(true); }, 3*60*1000);
 }
 
 function initDriveUI() {
@@ -1650,6 +1652,12 @@ function renderChapter() {
   if(!BIBLE) return;
   const chap = BIBLE[state.currentBook]?.[state.currentChap];
   if(!chap) return;
+
+  // Sincronizar selects com state atual
+  var selBook = document.getElementById('select-book');
+  var selChap = document.getElementById('select-chap');
+  if(selBook && selBook.value !== state.currentBook) selBook.value = state.currentBook;
+  if(selChap && parseInt(selChap.value) !== state.currentChap) selChap.value = state.currentChap;
 
   const chapLabel = `${state.currentBook} ${state.currentChap}`;
   document.getElementById('chap-title').textContent = chapLabel;
@@ -2289,25 +2297,28 @@ let driveToken = localStorage.getItem('driveToken') || null;
 let driveFileId = localStorage.getItem('driveFileId') || null;
 
 function driveSetStatus(status) {
+  // Aguardar DOM estar pronto
   var dot = document.getElementById('drive-dot');
   var lbl = document.getElementById('drive-status');
   var saveBtn = document.getElementById('drive-save-btn');
   var connectBtn = document.getElementById('drive-connect-btn');
-  if(!dot || !lbl) return;
-  if(status === 'connected') {
-    dot.style.background = '#6db88a';
-    lbl.textContent = 'Drive conectado';
-    if(saveBtn) saveBtn.style.display = 'inline-block';
-    if(connectBtn) connectBtn.style.display = 'none';
-  } else if(status === 'syncing') {
-    dot.style.background = '#c9a84c';
-    lbl.textContent = 'Salvando...';
-  } else {
-    dot.style.background = '#7a8fa8';
-    lbl.textContent = 'Drive: nao conectado';
-    if(saveBtn) saveBtn.style.display = 'none';
-    if(connectBtn) connectBtn.style.display = 'inline-block';
-  }
+  if(!dot || !lbl) return; // DOM nao pronto ainda - sair silenciosamente
+  try {
+    if(status === 'connected') {
+      dot.style.background = '#6db88a';
+      lbl.textContent = 'Drive conectado';
+      if(saveBtn) saveBtn.style.display = 'inline-block';
+      if(connectBtn) connectBtn.style.display = 'none';
+    } else if(status === 'syncing') {
+      dot.style.background = '#c9a84c';
+      lbl.textContent = 'Salvando...';
+    } else {
+      dot.style.background = '#7a8fa8';
+      lbl.textContent = 'Drive: nao conectado';
+      if(saveBtn) saveBtn.style.display = 'none';
+      if(connectBtn) connectBtn.style.display = 'inline-block';
+    }
+  } catch(e) {}
 }
 
 function driveConnect() {
@@ -2469,9 +2480,6 @@ async function driveLoad() {
 // ============================================================
 // START
 // ============================================================
-// Auto-save Drive
-setInterval(function(){ if(driveToken) driveSaveData(); }, 3*60*1000);
-
 initLock();
 </script>
 </body>
