@@ -2239,16 +2239,19 @@ let driveFileId = localStorage.getItem('driveFileId') || null;
 function driveSetStatus(status) {
   var dot = document.getElementById('drive-dot');
   var lbl = document.getElementById('drive-status');
-  if(!dot) return;
+  var btn = document.querySelector('#drive-bar button');
+  if(!dot || !lbl) return;
   if(status === 'connected') {
     dot.style.background = '#6db88a';
     lbl.textContent = 'Drive conectado';
+    if(btn) { btn.textContent = 'Salvar'; btn.onclick = driveSaveData; }
   } else if(status === 'syncing') {
     dot.style.background = '#c9a84c';
     lbl.textContent = 'Sincronizando...';
   } else {
-    dot.style.background = 'var(--text3)';
+    dot.style.background = '#7a8fa8';
     lbl.textContent = 'Drive: nao conectado';
+    if(btn) { btn.textContent = 'Conectar'; btn.onclick = driveConnect; }
   }
 }
 
@@ -2400,14 +2403,16 @@ async function driveLoad() {
 }
 
 // Auto-reconectar
-if(driveToken) {
-  setTimeout(function() {
-    driveSetStatus('connected');
-    var btn = document.querySelector('#drive-bar button');
-    if(btn) { btn.textContent = 'Salvar'; btn.onclick = driveSaveData; }
-    driveLoad();
-  }, 1500);
-}
+window.addEventListener('DOMContentLoaded', function() {
+  if(driveToken) {
+    setTimeout(function() {
+      driveSetStatus('connected');
+      var btn = document.querySelector('#drive-bar button');
+      if(btn) { btn.textContent = 'Salvar'; btn.onclick = driveSaveData; }
+      driveLoad();
+    }, 2000);
+  }
+});
 
 // ============================================================
 // START
