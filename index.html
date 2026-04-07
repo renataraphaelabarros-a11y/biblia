@@ -988,7 +988,7 @@ option { background: var(--bg2); }
     <div class="nav-actions">
       <button class="nav-btn" id="search-nav-btn" title="Buscar">⌕</button>
       <button class="nav-btn" id="theme-btn" title="Alternar tema">☽</button>
-      <button class="nav-btn" id="sync-btn" title="Sincronizar">☁</button>
+            <button class="nav-btn" id="sync-btn" title="Drive" onclick="driveToggle()">&#9729;</button>
     </div>
   </nav>
 
@@ -1122,11 +1122,6 @@ option { background: var(--bg2); }
     <div class="vm-section-title">Anotação</div>
     <textarea class="vm-textarea" id="vm-note" placeholder="Suas reflexões sobre este versículo..."></textarea>
 
-    <div class="vm-section-title">Tags</div>
-    <div class="vm-tags-wrap" id="vm-tags-wrap">
-      <button class="vm-new-tag" id="vm-new-tag-btn">+ Nova tag</button>
-    </div>
-
     <button class="vm-fav-btn" id="vm-fav-btn">
       <span id="vm-fav-icon">☆</span> Adicionar aos Favoritos
     </button>
@@ -1136,15 +1131,6 @@ option { background: var(--bg2); }
 </div>
 
 <!-- MODAL NOVA TAG -->
-<div class="tag-modal" id="tag-modal">
-  <div class="tag-modal-inner">
-    <div class="vm-section-title" style="margin-bottom:12px">Nova Tag</div>
-    <input type="text" class="tag-input" id="tag-input" placeholder="Nome da tag...">
-    <div class="tag-modal-btns">
-      <button class="tag-confirm-btn" id="tag-confirm">Criar</button>
-      <button class="tag-cancel-btn" id="tag-cancel">Cancelar</button>
-    </div>
-  </div>
 </div>
 
 <!-- TOAST -->
@@ -1852,7 +1838,7 @@ function initVerseModal() {
   });
 
   document.getElementById('vm-new-tag-btn').addEventListener('click', () => {
-    openTagModal();
+    // openTagModal();
   });
 }
 
@@ -1873,7 +1859,7 @@ function openVerseModal(verse) {
   }
 
   // Tags
-  renderVmTags(ann.tags || []);
+  // renderVmTags(ann.tags || []);
 
   document.getElementById('verse-modal').classList.add('open');
 }
@@ -1883,57 +1869,14 @@ function closeVerseModal() {
   currentVerse = null;
 }
 
-function renderVmTags(selectedTags) {
-  const wrap = document.getElementById('vm-tags-wrap');
-  const newBtn = document.getElementById('vm-new-tag-btn');
-  wrap.innerHTML = '';
-  state.tags.forEach(tag => {
-    const btn = document.createElement('button');
-    btn.className = 'vm-tag' + (selectedTags.includes(tag) ? ' active' : '');
-    btn.textContent = tag;
-    btn.addEventListener('click', () => {
-      if(!currentVerse) return;
-      const ann = state.annotations[currentVerse.ref] || {};
-      if(!ann.tags) ann.tags = [];
-      const idx = ann.tags.indexOf(tag);
-      if(idx >= 0) ann.tags.splice(idx, 1);
-      else ann.tags.push(tag);
-      state.annotations[currentVerse.ref] = ann;
-      btn.classList.toggle('active');
-      saveState();
-    });
-    wrap.appendChild(btn);
-  });
-  wrap.appendChild(newBtn);
-}
+
 
 // ============================================================
 // MODAL DE NOVA TAG
 // ============================================================
-function initTagModal() {
-  document.getElementById('tag-cancel').addEventListener('click', () => {
-    document.getElementById('tag-modal').classList.remove('open');
-  });
-  document.getElementById('tag-confirm').addEventListener('click', () => {
-    const val = document.getElementById('tag-input').value.trim();
-    if(val && !state.tags.includes(val)) {
-      state.tags.push(val);
-      saveState();
-    }
-    document.getElementById('tag-modal').classList.remove('open');
-    document.getElementById('tag-input').value = '';
-    if(currentVerse) {
-      const ann = state.annotations[currentVerse.ref] || {};
-      renderVmTags(ann.tags || []);
-    }
-    renderNoteFilters();
-  });
-}
 
-function openTagModal() {
-  document.getElementById('tag-modal').classList.add('open');
-  document.getElementById('tag-input').focus();
-}
+
+
 
 function renderNoteFilters() {
   const wrap = document.getElementById('notes-filters');
@@ -1969,6 +1912,16 @@ function initNotes() {
   });
 }
 
+
+
+function editarNota(ev, ref) {
+  ev.stopPropagation();
+  const m = ref.match(/^(.+) (\d+):(\d+)$/);
+  if(!m || !BIBLE) return;
+  const book = m[1], chap = parseInt(m[2]), verse = parseInt(m[3]);
+  const text = BIBLE[book]?.[chap]?.[verse] || '';
+  openVerseModal({book, chap, verse, ref, text});
+}
 
 function excluirNota(ev, ref) {
   ev.stopPropagation();
@@ -2006,25 +1959,47 @@ function renderNotes(filter, search) {
       return BIBLE[m[1]]?.[m[2]]?.[m[3]] || '';
     })() : '';
     return `
-      <div class="note-card" data-ref="${ref}" style="position:relative">
-        <div class="note-ref">${ref} ${ann.favorite ? '⭐' : ''}</div>
+      <div class="note-card" data-ref="${ref}" style="position:relative;cursor:pointer">
+        <div class="note-ref">${ref} ${ann.favorite ? '&#9733;' : ''}</div>
         ${text ? `<div class="note-verse">"${text}"</div>` : ''}
         ${ann.note ? `<div class="note-text">${ann.note}</div>` : ''}
-        
         <div class="note-date">${ann.date || ''}</div>
-        <button onclick="excluirNota(event,'${ref}')" style="position:absolute;top:8px;right:8px;background:none;border:none;color:var(--text3);font-size:1rem;cursor:pointer;padding:2px 6px">&#x2715;</button>
+        <div style="position:absolute;top:8px;right:8px;display:flex;gap:4px">
+          <button onclick="editarNota(event,'${ref}')" title="Editar" style="background:none;border:none;color:var(--text3);font-size:0.9rem;cursor:pointer;padding:2px 5px">&#x270F;</button>
+          <button onclick="excluirNota(event,'${ref}')" title="Excluir" style="background:none;border:none;color:var(--text3);font-size:0.9rem;cursor:pointer;padding:2px 5px">&#x2715;</button>
+        </div>
       </div>
     `;
   }).join('');
 
   list.querySelectorAll('.note-card').forEach(card => {
-    card.addEventListener('click', () => {
+    card.addEventListener('click', (e) => {
+      // Nao navegar se clicou num botao
+      if(e.target.tagName === 'BUTTON') return;
       const ref = card.dataset.ref;
       const m = ref.match(/^(.+) (\d+):(\d+)$/);
       if(!m || !BIBLE) return;
       const book = m[1], chap = parseInt(m[2]), verse = parseInt(m[3]);
-      const text = BIBLE[book]?.[chap]?.[verse] || '';
-      openVerseModal({book, chap, verse, ref, text});
+      // Navegar para o texto
+      state.currentBook = book;
+      state.currentChap = chap;
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelector('[data-tab="reader"]').classList.add('active');
+      document.getElementById('page-reader').classList.add('active');
+      document.getElementById('select-book').value = book;
+      updateChapSelect();
+      updateVerseSelect();
+      renderChapter();
+      setTimeout(() => {
+        const el = document.querySelector('.verse[data-verse="' + verse + '"]');
+        if(el) {
+          el.scrollIntoView({behavior:'smooth', block:'center'});
+          el.style.background = 'var(--gold-dim)';
+          setTimeout(() => { el.style.background = ''; }, 1500);
+        }
+      }, 200);
+      saveState();
     });
   });
 }
@@ -2228,6 +2203,24 @@ function driveSetStatus(status) {
     lbl.textContent = 'Drive: nao conectado';
     if(saveBtn) saveBtn.style.display = 'none';
     if(connectBtn) connectBtn.style.display = 'inline-block';
+  }
+}
+
+
+function driveToggle() {
+  if(driveToken) {
+    // Desconectar
+    if(confirm('Desconectar o Google Drive?')) {
+      driveToken = null;
+      driveFileId = null;
+      localStorage.removeItem('driveToken');
+      localStorage.removeItem('driveFileId');
+      driveSetStatus('disconnected');
+      showToast('Drive desconectado.');
+    }
+  } else {
+    // Conectar
+    driveConnect();
   }
 }
 
