@@ -904,6 +904,27 @@ option { background: var(--bg2); }
 }
 .drive-sync-btn:hover { color: var(--gold); }
 
+.section-title-inline {
+  display: block;
+  font-family: var(--font-ui);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--gold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 20px 0 6px 0;
+  padding: 4px 0;
+  border-top: 1px solid var(--gold-dim);
+  opacity: 0.85;
+}
+#nav-livros-grid button:hover,
+#nav-caps-grid button:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+#nav-livros-grid::-webkit-scrollbar { width: 4px; }
+#nav-livros-grid::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
 /* ===== SCROLLBAR ===== */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -1006,10 +1027,22 @@ option { background: var(--bg2); }
 
     <!-- LEITURA -->
     <div class="page active" id="page-reader">
-      <div class="reader-nav">
-        <select class="select-book" id="select-book"></select>
-        <select class="select-chap" id="select-chap"></select>
-        <select class="select-verse" id="select-verse"></select>
+      <!-- Navegacao em 3 etapas -->
+      <div id="nav-livro" style="margin-bottom:10px">
+        <input id="nav-busca-livro" type="text" placeholder="Buscar livro..." style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:0.9rem;margin-bottom:8px;box-sizing:border-box">
+        <div id="nav-livros-grid" style="display:flex;flex-wrap:wrap;gap:4px;max-height:140px;overflow-y:auto"></div>
+      </div>
+      <div id="nav-caps" style="display:none;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <button onclick="navVoltar()" style="background:none;border:1px solid var(--border);color:var(--text2);border-radius:6px;padding:4px 10px;cursor:pointer;font-size:0.85rem">&#8592; Livros</button>
+          <span id="nav-livro-atual" style="font-weight:600;color:var(--gold);font-size:0.95rem"></span>
+        </div>
+        <div id="nav-caps-grid" style="display:flex;flex-wrap:wrap;gap:4px"></div>
+      </div>
+      <div id="nav-verso-row" style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+        <button onclick="navMostrarCaps()" style="background:none;border:1px solid var(--border);color:var(--text2);border-radius:6px;padding:4px 10px;cursor:pointer;font-size:0.85rem" title="Mudar capitulo">&#8592;</button>
+        <span id="nav-ref-atual" style="color:var(--gold);font-weight:600;font-size:0.95rem;flex:1"></span>
+        <select id="select-verse" class="select-verse" style="flex-shrink:0"></select>
       </div>
       <div class="font-controls">
         <button class="font-btn" id="font-down">A−</button>
@@ -1468,81 +1501,102 @@ function updateStats() {
 // ============================================================
 function initReader() {
   if(!BIBLE) return;
+  navRenderLivros();
+  navMostrarLivros();
 
-  // Popular livros
-  const bookSel = document.getElementById('select-book');
-  BOOKS_ORDER.forEach(b => {
-    if(BIBLE[b]) {
-      const opt = document.createElement('option');
-      opt.value = b; opt.textContent = b;
-      if(b === state.currentBook) opt.selected = true;
-      bookSel.appendChild(opt);
-    }
+  // Se ja tem livro/cap selecionado, mostrar direto o texto
+  if(state.currentBook && state.currentChap) {
+    navAbrirCap(state.currentBook, state.currentChap);
+  }
+
+  // Busca de livro
+  document.getElementById('nav-busca-livro').addEventListener('input', function() {
+    navRenderLivros(this.value);
   });
 
-  bookSel.onchange = function() {
-    console.log('Livro mudou para:', bookSel.value);
-    state.currentBook = bookSel.value;
-    var caps = Object.keys(BIBLE[state.currentBook]).map(Number).sort(function(a,b){return a-b;});
-    state.currentChap = caps[0];
-    updateChapSelect();
-    updateVerseSelect();
-    renderChapter();
-    saveState();
-  };
-
-  updateChapSelect();
-  updateVerseSelect();
-  renderChapter();
-
-  // Navegação capítulo — topo
-  document.getElementById('prev-chap').addEventListener('click', () => navigateChap(-1));
-  document.getElementById('next-chap').addEventListener('click', () => navigateChap(1));
-
-  // Navegação capítulo — FINAL (espelha os do topo)
-  document.getElementById('prev-chap-bottom').addEventListener('click', () => navigateChap(-1));
-  document.getElementById('next-chap-bottom').addEventListener('click', () => navigateChap(1));
-
-  document.getElementById('select-chap').onchange = function() {
-    state.currentChap = parseInt(this.value);
-    updateVerseSelect();
-    renderChapter();
-    saveState();
-  };
-
-  // Select de versículo
-  document.getElementById('select-verse').addEventListener('change', () => {
-    const v = document.getElementById('select-verse').value;
+  // Select de versiculo
+  document.getElementById('select-verse').addEventListener('change', function() {
+    const v = this.value;
     if(!v) return;
-    // Rolar até o versículo
-    const el = document.querySelector(`.verse[data-verse="${v}"]`);
+    const el = document.querySelector('.verse[data-verse="' + v + '"]');
     if(el) {
       el.scrollIntoView({behavior:'smooth', block:'center'});
-      // Piscar suavemente para destacar
-      el.style.transition = 'background 0.1s';
       el.style.background = 'var(--gold-dim)';
-      setTimeout(() => { el.style.background = ''; }, 1200);
+      setTimeout(function(){ el.style.background = ''; }, 1200);
     }
   });
+
+  // Navegação anterior/próximo
+  document.getElementById('prev-chap').addEventListener('click', () => navigateChap(-1));
+  document.getElementById('next-chap').addEventListener('click', () => navigateChap(1));
+  document.getElementById('prev-chap-bottom').addEventListener('click', () => navigateChap(-1));
+  document.getElementById('next-chap-bottom').addEventListener('click', () => navigateChap(1));
 
   // Tamanho da fonte
   if(!state.fontSize) state.fontSize = 1.15;
   updateFontSizeLabel();
-
   document.getElementById('font-up').addEventListener('click', () => {
     state.fontSize = Math.min(+(state.fontSize + 0.1).toFixed(2), 2.0);
     document.getElementById('bible-text').style.fontSize = state.fontSize + 'rem';
-    updateFontSizeLabel();
-    saveState();
+    updateFontSizeLabel(); saveState();
   });
   document.getElementById('font-down').addEventListener('click', () => {
     state.fontSize = Math.max(+(state.fontSize - 0.1).toFixed(2), 0.8);
     document.getElementById('bible-text').style.fontSize = state.fontSize + 'rem';
-    updateFontSizeLabel();
-    saveState();
+    updateFontSizeLabel(); saveState();
   });
-
 }
+
+function navRenderLivros(filtro) {
+  const grid = document.getElementById('nav-livros-grid');
+  filtro = (filtro || '').toLowerCase();
+  const livros = BOOKS_ORDER.filter(b => BIBLE[b] && (!filtro || b.toLowerCase().includes(filtro)));
+  grid.innerHTML = livros.map(b =>
+    `<button onclick="navEscolherLivro('${b.replace(/'/g,"\'")}'')" style="background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:0.82rem;white-space:nowrap">${b}</button>`
+  ).join('');
+}
+
+function navEscolherLivro(livro) {
+  state.currentBook = livro;
+  const caps = Object.keys(BIBLE[livro]).map(Number).sort((a,b)=>a-b);
+  state.currentChap = caps[0];
+  navMostrarCaps();
+  // Render caps
+  const grid = document.getElementById('nav-caps-grid');
+  document.getElementById('nav-livro-atual').textContent = livro;
+  grid.innerHTML = caps.map(c =>
+    `<button onclick="navAbrirCap('${livro.replace(/'/g,"\'")}', ${c})" style="background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:0.85rem;min-width:48px">${c}</button>`
+  ).join('');
+}
+
+function navAbrirCap(livro, cap) {
+  state.currentBook = livro;
+  state.currentChap = cap;
+  document.getElementById('nav-livro').style.display = 'none';
+  document.getElementById('nav-caps').style.display = 'none';
+  document.getElementById('nav-verso-row').style.display = 'flex';
+  document.getElementById('nav-ref-atual').textContent = livro + ' ' + cap;
+  updateVerseSelect();
+  renderChapter();
+  saveState();
+}
+
+function navMostrarLivros() {
+  document.getElementById('nav-livro').style.display = 'block';
+  document.getElementById('nav-caps').style.display = 'none';
+  document.getElementById('nav-verso-row').style.display = state.currentBook ? 'flex' : 'none';
+}
+
+function navMostrarCaps() {
+  document.getElementById('nav-livro').style.display = 'none';
+  document.getElementById('nav-caps').style.display = 'block';
+  document.getElementById('nav-verso-row').style.display = 'none';
+}
+
+function navVoltar() {
+  navMostrarLivros();
+}
+
 
 function updateFontSizeLabel() {
   const pct = Math.round((state.fontSize / 1.15) * 100);
@@ -1555,7 +1609,8 @@ function updateVerseSelect() {
   var sel = document.getElementById('select-verse');
   if(!sel || !BIBLE || !BIBLE[state.currentBook]) return;
   var chap = BIBLE[state.currentBook][state.currentChap];
-  if(!chap) return;
+  if(!chap) { console.log('updateVerseSelect: capitulo nao encontrado', state.currentBook, state.currentChap); return; }
+  console.log('updateVerseSelect:', state.currentBook, state.currentChap, Object.keys(chap).length, 'versos');
   sel.innerHTML = '<option value="">Vers.</option>';
   Object.keys(chap).map(Number).sort(function(a,b){return a-b;}).forEach(function(v) {
     var o = document.createElement('option');
@@ -1564,18 +1619,7 @@ function updateVerseSelect() {
   });
 }
 
-function updateChapSelect() {
-  const sel = document.getElementById('select-chap');
-  sel.innerHTML = '';
-  if(!BIBLE || !BIBLE[state.currentBook]) return;
-  const chaps = Object.keys(BIBLE[state.currentBook]).map(Number).sort((a,b) => a-b);
-  chaps.forEach(c => {
-    const opt = document.createElement('option');
-    opt.value = c; opt.textContent = 'Cap. ' + c;
-    if(c === state.currentChap) opt.selected = true;
-    sel.appendChild(opt);
-  });
-}
+
 
 function renderChapter() {
   if(!BIBLE) return;
@@ -1618,7 +1662,15 @@ function renderChapter() {
 
     html += `<div class="verse-block">`;
     html += `<span class="verse ${hlClass}" data-ref="${ref}" data-book="${state.currentBook}" data-chap="${state.currentChap}" data-verse="${v}">`;
-    html += `<sup class="verse-num">${v}</sup>${chap[v]}`;
+    // Separar titulo de secao do texto do versiculo
+    const rawText = chap[v];
+    const titleMatch = rawText.match(/^(.*?[.!?])\s+([A-ZÀ-Ü][^\.!?]{10,80})$/);
+    const verseText = titleMatch ? titleMatch[1] : rawText;
+    const sectionTitle = titleMatch ? titleMatch[2] : null;
+    if(sectionTitle) {
+      html += `<div class="section-title-inline">${sectionTitle}</div>`;
+    }
+    html += `<sup class="verse-num">${v}</sup>${verseText}`;
     html += `</span>`;
     if(note) {
       html += `<span class="verse-inline-note" data-ref="${ref}">✏ ${note}</span>`;
@@ -1688,9 +1740,7 @@ function navigateChap(dir) {
     state.currentChap = allChaps[newIdx];
   }
 
-  document.getElementById('select-book').value = state.currentBook;
-  updateChapSelect();
-  updateVerseSelect();
+    updateVerseSelect();
   renderChapter();
   window.scrollTo(0,0);
   saveState();
@@ -1707,9 +1757,7 @@ function openReadingInReader(reading) {
     state.currentBook = book;
     state.currentChap = chap;
     document.querySelector('[data-tab="reader"]').click();
-    document.getElementById('select-book').value = book;
-    updateChapSelect();
-    renderChapter();
+      renderChapter();
     saveState();
   }
 }
@@ -1977,9 +2025,7 @@ function renderNotes(filter, search) {
       document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
       document.querySelector('[data-tab="reader"]').classList.add('active');
       document.getElementById('page-reader').classList.add('active');
-      document.getElementById('select-book').value = book;
-      updateChapSelect();
-      updateVerseSelect();
+            updateVerseSelect();
       renderChapter();
       setTimeout(() => {
         const el = document.querySelector('.verse[data-verse="' + verse + '"]');
