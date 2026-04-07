@@ -953,19 +953,6 @@ option { background: var(--bg2); }
   color: var(--gold);
 }
 
-.verse.selecionado {
-  background: rgba(201,168,76,0.25) !important;
-  border-radius: 4px;
-  outline: 2px solid var(--gold);
-  outline-offset: 2px;
-}
-#sel-bar {
-  display: none;
-}
-#sel-bar.ativo {
-  display: flex !important;
-}
-
 /* ===== SCROLLBAR ===== */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -1136,9 +1123,14 @@ option { background: var(--bg2); }
       <button class="study-btn" id="new-study-btn">✏ Novo Estudo</button>
       <div class="study-editor" id="study-editor">
         <input type="text" class="study-title-input" id="study-title" placeholder="Título do estudo...">
-        <textarea class="study-body-input" id="study-body" placeholder="Escreva suas reflexões. Use @Livro C:V para referenciar versículos (ex: @João 3:16)..."></textarea>
-        <br>
-        <button class="study-save-btn" id="study-save">Salvar</button>
+        <div style="display:flex;gap:6px;margin-bottom:6px">
+          <button id="study-insert-verse-btn" style="background:none;border:1px solid var(--border);color:var(--text3);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:0.8rem;flex:1" title="Inserir versículo atual">+ Inserir versículo atual</button>
+        </div>
+        <textarea class="study-body-input" id="study-body" placeholder="Escreva suas reflexões..."></textarea>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="study-save-btn" id="study-save" style="flex:1">Salvar</button>
+          <button id="study-cancel-btn" style="background:none;border:1px solid var(--border);color:var(--text3);border-radius:8px;padding:8px 14px;cursor:pointer;font-size:0.85rem">Cancelar</button>
+        </div>
       </div>
       <div id="studies-list">
         <div class="empty-state">
@@ -1178,13 +1170,6 @@ option { background: var(--bg2); }
 
   </div><!-- /content -->
 </div><!-- /app -->
-
-<!-- BARRA SELEÇÃO MÚLTIPLA -->
-<div id="sel-bar" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:200;background:var(--bg3);border-top:1px solid var(--border);padding:12px 16px;display:none;align-items:center;gap:10px;flex-wrap:wrap">
-  <span id="sel-count" style="color:var(--gold);font-weight:600;font-size:0.9rem;flex:1">0 versículos</span>
-  <button onclick="selAnotar()" style="background:var(--gold);color:#0d1b2a;border:none;border-radius:8px;padding:8px 16px;cursor:pointer;font-weight:600;font-size:0.85rem">Anotar</button>
-  <button onclick="selCancelar()" style="background:none;border:1px solid var(--border);color:var(--text2);border-radius:8px;padding:8px 14px;cursor:pointer;font-size:0.85rem">Cancelar</button>
-</div>
 
 <!-- MODAL VERSÍCULO -->
 <div class="verse-modal" id="verse-modal">
@@ -1716,71 +1701,16 @@ function renderChapter() {
   container.innerHTML = html;
   updateMarkReadBtn();
 
-  // Eventos nos versículos — long press para seleção múltipla, click simples para modal
+  // Eventos nos versículos
   container.querySelectorAll('.verse').forEach(el => {
-    const getVerseObj = () => {
+    el.addEventListener('click', () => {
       const book = el.dataset.book;
       const chapN = parseInt(el.dataset.chap);
       const verseN = parseInt(el.dataset.verse);
       const ref = el.dataset.ref;
       const text = BIBLE[book]?.[chapN]?.[verseN] || '';
-      return {book, chap: chapN, verse: verseN, ref, text};
-    };
-
-    // Long press — iniciar seleção
-    el.addEventListener('touchstart', (e) => {
-      longPressTimer = setTimeout(() => {
-        longPressTimer = null;
-        const vo = getVerseObj();
-        if(modoSelecao) {
-          selToggle(vo);
-        } else {
-          selEntrar(vo);
-        }
-      }, LONG_PRESS_MS);
-    }, {passive: true});
-
-    el.addEventListener('touchend', () => {
-      if(longPressTimer) {
-        clearTimeout(longPressTimer);
-        longPressTimer = null;
-      }
-    });
-
-    el.addEventListener('touchmove', () => {
-      if(longPressTimer) {
-        clearTimeout(longPressTimer);
-        longPressTimer = null;
-      }
-    });
-
-    // Click simples
-    el.addEventListener('click', (e) => {
-      if(longPressTimer === null && modoSelecao) {
-        // Já em modo seleção — toggle
-        selToggle(getVerseObj());
-        return;
-      }
-      if(modoSelecao) return;
-      const vo = getVerseObj();
-      document.getElementById('select-verse').value = vo.verse;
-      openVerseModal(vo);
-    });
-
-    // Mouse long press (desktop)
-    el.addEventListener('mousedown', () => {
-      longPressTimer = setTimeout(() => {
-        longPressTimer = null;
-        const vo = getVerseObj();
-        if(modoSelecao) selToggle(vo);
-        else selEntrar(vo);
-      }, LONG_PRESS_MS);
-    });
-    el.addEventListener('mouseup', () => {
-      if(longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
-    });
-    el.addEventListener('mousemove', () => {
-      if(longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+      document.getElementById('select-verse').value = verseN;
+      openVerseModal({book, chap: chapN, verse: verseN, ref, text});
     });
   });
 
@@ -2151,47 +2081,118 @@ function renderNotes(filter, search) {
 // ============================================================
 // ESTUDOS
 // ============================================================
+var studyEditingId = null;
+
 function initStudies() {
   document.getElementById('new-study-btn').addEventListener('click', () => {
+    studyEditingId = null;
+    document.getElementById('study-title').value = '';
+    document.getElementById('study-body').value = '';
     const editor = document.getElementById('study-editor');
     editor.classList.toggle('open');
     if(editor.classList.contains('open')) document.getElementById('study-title').focus();
+  });
+
+  document.getElementById('study-cancel-btn').addEventListener('click', () => {
+    document.getElementById('study-editor').classList.remove('open');
+    studyEditingId = null;
+  });
+
+  document.getElementById('study-insert-verse-btn').addEventListener('click', () => {
+    // Inserir referência do versículo atual no cursor
+    const ref = state.currentBook + ' ' + state.currentChap + ':';
+    const textarea = document.getElementById('study-body');
+    const pos = textarea.selectionStart;
+    const before = textarea.value.substring(0, pos);
+    const after = textarea.value.substring(pos);
+    // Pegar texto do versículo atual se possível
+    const chap = BIBLE?.[state.currentBook]?.[state.currentChap];
+    const verseNums = chap ? Object.keys(chap).map(Number).sort((a,b)=>a-b) : [];
+    const firstVerse = verseNums[0] || 1;
+    const verseText = chap?.[firstVerse] || '';
+    const insert = '\n[' + ref + firstVerse + '] "' + verseText.substring(0, 120) + (verseText.length > 120 ? '..."' : '"') + '\n';
+    textarea.value = before + insert + after;
+    textarea.focus();
+    textarea.selectionStart = textarea.selectionEnd = pos + insert.length;
+    showToast('Versículo inserido!');
   });
 
   document.getElementById('study-save').addEventListener('click', () => {
     const title = document.getElementById('study-title').value.trim();
     const body = document.getElementById('study-body').value.trim();
     if(!title && !body) return;
-    state.studies.unshift({
-      id: Date.now(),
-      title: title || 'Sem título',
-      body,
-      date: new Date().toLocaleDateString('pt-BR')
-    });
+    if(studyEditingId) {
+      // Editar existente
+      const idx = state.studies.findIndex(s => s.id === studyEditingId);
+      if(idx >= 0) {
+        state.studies[idx].title = title || 'Sem título';
+        state.studies[idx].body = body;
+        state.studies[idx].edited = new Date().toLocaleDateString('pt-BR');
+      }
+      studyEditingId = null;
+      showToast('Estudo atualizado!');
+    } else {
+      state.studies.unshift({
+        id: Date.now(),
+        title: title || 'Sem título',
+        body,
+        date: new Date().toLocaleDateString('pt-BR')
+      });
+      showToast('Estudo salvo!');
+    }
     document.getElementById('study-title').value = '';
     document.getElementById('study-body').value = '';
     document.getElementById('study-editor').classList.remove('open');
     saveState();
     renderStudies();
-    showToast('Estudo salvo v');
   });
 
   renderStudies();
 }
 
+function editarEstudo(id) {
+  const s = state.studies.find(s => s.id === id);
+  if(!s) return;
+  studyEditingId = id;
+  document.getElementById('study-title').value = s.title;
+  document.getElementById('study-body').value = s.body;
+  const editor = document.getElementById('study-editor');
+  editor.classList.add('open');
+  document.getElementById('study-title').focus();
+  editor.scrollIntoView({behavior: 'smooth', block: 'start'});
+}
+
+function excluirEstudo(id) {
+  if(!confirm('Excluir este estudo?')) return;
+  state.studies = state.studies.filter(s => s.id !== id);
+  saveState();
+  renderStudies();
+  showToast('Estudo excluído!');
+}
+
 function renderStudies() {
   const list = document.getElementById('studies-list');
   if(!state.studies.length) {
-    list.innerHTML = `<div class="empty-state"><div class="empty-icon">✆</div><div class="empty-text">Seus estudos bíblicos aparecerão aqui.</div></div>`;
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">&#128218;</div><div class="empty-text">Seus estudos bíblicos aparecerão aqui.</div></div>`;
     return;
   }
-  list.innerHTML = state.studies.map(s => `
-    <div class="study-card" data-id="${s.id}">
-      <div class="study-card-title">${s.title}</div>
-      <div class="study-card-preview">${s.body.substring(0,120)}${s.body.length > 120 ? '...' : ''}</div>
-      <div class="study-card-date">${s.date}</div>
+  list.innerHTML = state.studies.map(s => {
+    // Formatar corpo — refs [Livro C:V] viram links clicáveis
+    const bodyFormatted = s.body
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+            .replace(/\[([^\]]+)\]/g, function(m,r){ return '<span style="color:var(--gold);cursor:pointer;text-decoration:underline;font-size:0.85rem" onclick="irParaRef(\'' + r + '\')">['+ r +']</span>'; })
+      .replace(/\n/g, '<br>');
+    return `
+    <div class="study-card" style="position:relative" data-id="${s.id}">
+      <div style="position:absolute;top:10px;right:10px;display:flex;gap:4px">
+        <button onclick="editarEstudo(${s.id})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:0.9rem;padding:2px 5px" title="Editar">&#x270F;</button>
+        <button onclick="excluirEstudo(${s.id})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:0.9rem;padding:2px 5px" title="Excluir">&#x2715;</button>
+      </div>
+      <div class="study-card-title" style="padding-right:52px">${s.title}</div>
+      <div class="study-card-body" style="font-size:0.88rem;color:var(--text2);line-height:1.6;margin:8px 0;max-height:120px;overflow:hidden">${bodyFormatted}</div>
+      <div class="study-card-date">${s.edited ? 'Editado ' + s.edited : s.date}</div>
     </div>
-  `).join('');
+  `}).join('');
 }
 
 // ============================================================
@@ -2544,69 +2545,6 @@ async function driveLoad() {
 }
 
 
-
-// ============================================================
-// SELEÇÃO MÚLTIPLA DE VERSÍCULOS
-// ============================================================
-var modoSelecao = false;
-var versiculosSelecionados = []; // [{book,chap,verse,ref,text}]
-var longPressTimer = null;
-var LONG_PRESS_MS = 500;
-
-function selEntrar(verseObj) {
-  modoSelecao = true;
-  versiculosSelecionados = [verseObj];
-  document.getElementById('sel-bar').classList.add('ativo');
-  selAtualizarUI();
-}
-
-function selCancelar() {
-  modoSelecao = false;
-  versiculosSelecionados = [];
-  document.getElementById('sel-bar').classList.remove('ativo');
-  // Remover highlight de seleção
-  document.querySelectorAll('.verse.selecionado').forEach(el => el.classList.remove('selecionado'));
-}
-
-function selToggle(verseObj) {
-  const idx = versiculosSelecionados.findIndex(v => v.ref === verseObj.ref);
-  if(idx >= 0) {
-    versiculosSelecionados.splice(idx, 1);
-    if(versiculosSelecionados.length === 0) { selCancelar(); return; }
-  } else {
-    versiculosSelecionados.push(verseObj);
-  }
-  selAtualizarUI();
-}
-
-function selAtualizarUI() {
-  const count = versiculosSelecionados.length;
-  document.getElementById('sel-count').textContent = count + (count === 1 ? ' versículo' : ' versículos');
-  // Highlight nos versículos selecionados
-  document.querySelectorAll('.verse').forEach(el => {
-    const isSelected = versiculosSelecionados.some(v => v.ref === el.dataset.ref);
-    el.classList.toggle('selecionado', isSelected);
-  });
-}
-
-function selAnotar() {
-  if(!versiculosSelecionados.length) return;
-  // Ordenar por número de versículo
-  versiculosSelecionados.sort((a, b) => a.verse - b.verse);
-  const primeiro = versiculosSelecionados[0];
-  const ultimo = versiculosSelecionados[versiculosSelecionados.length - 1];
-  // Montar ref do trecho
-  let ref, text;
-  if(versiculosSelecionados.length === 1) {
-    ref = primeiro.ref;
-    text = primeiro.text;
-  } else {
-    ref = primeiro.book + ' ' + primeiro.chap + ':' + primeiro.verse + '-' + ultimo.verse;
-    text = versiculosSelecionados.map(v => v.verse + ' ' + v.text).join(' ');
-  }
-  selCancelar();
-  openVerseModal({book: primeiro.book, chap: primeiro.chap, verse: primeiro.verse, ref, text});
-}
 
 // ============================================================
 // HISTÓRICO DE LEITURA
