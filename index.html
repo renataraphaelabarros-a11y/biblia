@@ -925,6 +925,34 @@ option { background: var(--bg2); }
 #nav-livros-grid::-webkit-scrollbar { width: 4px; }
 #nav-livros-grid::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
+
+.history-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.history-ref {
+  font-family: var(--font-ui);
+  font-weight: 600;
+  color: var(--gold);
+  font-size: 0.9rem;
+  flex: 1;
+}
+.history-date {
+  font-size: 0.75rem;
+  color: var(--text3);
+}
+#mark-read-btn.lido {
+  background: var(--gold-dim);
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
 /* ===== SCROLLBAR ===== */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -1020,6 +1048,7 @@ option { background: var(--bg2); }
     <button class="tab" data-tab="notes">Anotações</button>
     <button class="tab" data-tab="studies">Estudos</button>
     <button class="tab" data-tab="search">Buscar</button>
+    <button class="tab" data-tab="history">Histórico</button>
   </div>
 
   <!-- CONTEÚDO -->
@@ -1048,7 +1077,12 @@ option { background: var(--bg2); }
         <div class="loading"><div class="loading-cross">+</div><div class="loading-text">Carregando o texto sagrado...</div></div>
       </div>
       <!-- Botões de navegação no FINAL do capítulo -->
-      <div class="reader-chap-nav" id="chap-nav-bottom" style="margin-top:24px;margin-bottom:32px;">
+      <div id="mark-read-wrap" style="text-align:center;margin:20px 0 4px 0">
+        <button id="mark-read-btn" onclick="toggleMarkRead()" style="background:none;border:1px solid var(--border);color:var(--text3);border-radius:20px;padding:8px 24px;cursor:pointer;font-size:0.85rem;transition:all 0.2s">
+          &#10003; Marcar como lido
+        </button>
+      </div>
+      <div class="reader-chap-nav" id="chap-nav-bottom" style="margin-top:8px;margin-bottom:32px;">
         <button class="chap-btn" id="prev-chap-bottom">← Anterior</button>
         <div class="chap-title" id="chap-title-bottom"></div>
         <button class="chap-btn" id="next-chap-bottom">Próximo →</button>
@@ -1105,7 +1139,7 @@ option { background: var(--bg2); }
     <div class="page" id="page-search">
       <div class="search-wrap">
         <span class="search-icon">⌕</span>
-        <input type="text" class="search-input" id="search-input" placeholder="Buscar versículos, anotações...">
+        <input type="text" class="search-input" id="search-input" placeholder="Buscar... ou refs como Jo 3:16, Gn 1">
         <button class="search-clear" id="search-clear">✕</button>
       </div>
       <div class="filter-chips" id="search-filters">
@@ -1120,6 +1154,13 @@ option { background: var(--bg2); }
           <div class="empty-text">Digite algo para buscar na Bíblia.</div>
         </div>
       </div>
+    </div>
+
+  <!-- HISTÓRICO -->
+    <div class="page" id="page-history">
+      <div class="section-title" style="margin-top:4px">Histórico de Leitura</div>
+      <div id="history-stats" style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap"></div>
+      <div id="history-list"></div>
     </div>
 
   </div><!-- /content -->
@@ -1141,6 +1182,12 @@ option { background: var(--bg2); }
     </div>
 
     <div class="vm-section-title">Anotação</div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:0.82rem;color:var(--text3)">
+      <span>Trecho:</span>
+      <span id="vm-ref-start" style="color:var(--gold)"></span>
+      <span>até vers.</span>
+      <input type="number" id="vm-verse-end" min="1" max="200" style="width:60px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:0.85rem" placeholder="—">
+    </div>
     <textarea class="vm-textarea" id="vm-note" placeholder="Suas reflexões sobre este versículo..."></textarea>
 
     <button class="vm-fav-btn" id="vm-fav-btn">
@@ -1260,6 +1307,7 @@ let state = {
   planProgress: {}, // {weekDay: true/false}  e.g. "1_1": true
   studies: [],
   tags: [],
+  readHistory: {},
   fontSize: 1.15,
   theme: 'dark',
   currentBook: 'Gênesis',
@@ -1312,6 +1360,7 @@ async function initApp() {
   initStudies();
   initSearch();
   initVerseModal();
+  initHistory();
   updateStats();
 }
 
@@ -1651,6 +1700,7 @@ function renderChapter() {
   });
 
   container.innerHTML = html;
+  updateMarkReadBtn();
 
   // Eventos nos versículos
   container.querySelectorAll('.verse').forEach(el => {
@@ -1846,10 +1896,24 @@ function initVerseModal() {
   document.getElementById('vm-save-btn').addEventListener('click', () => {
     if(!currentVerse) return;
     const note = document.getElementById('vm-note').value.trim();
-    const ann = state.annotations[currentVerse.ref] || {};
+    const verseEndEl = document.getElementById('vm-verse-end');
+    const verseEnd = verseEndEl && verseEndEl.value ? parseInt(verseEndEl.value) : null;
+    // Montar referencia (pode ser trecho)
+    let refKey = currentVerse.ref;
+    if(verseEnd && verseEnd > currentVerse.verse) {
+      refKey = currentVerse.book + ' ' + currentVerse.chap + ':' + currentVerse.verse + '-' + verseEnd;
+    }
+    const ann = state.annotations[refKey] || {};
     ann.note = note;
     ann.date = new Date().toLocaleDateString('pt-BR');
-    state.annotations[currentVerse.ref] = ann;
+    state.annotations[refKey] = ann;
+    // Manter highlight/fav no ref original
+    if(refKey !== currentVerse.ref) {
+      const origAnn = state.annotations[currentVerse.ref] || {};
+      origAnn.highlight = ann.highlight || origAnn.highlight;
+      origAnn.favorite = ann.favorite || origAnn.favorite;
+      state.annotations[currentVerse.ref] = origAnn;
+    }
     saveState();
     renderNotes();
     renderChapter(); // atualiza nota inline no texto
@@ -1864,6 +1928,10 @@ function openVerseModal(verse) {
   const ann = state.annotations[verse.ref] || {};
 
   document.getElementById('vm-ref').textContent = verse.ref;
+  const refStart = document.getElementById('vm-ref-start');
+  if(refStart) refStart.textContent = verse.ref;
+  const verseEndInput = document.getElementById('vm-verse-end');
+  if(verseEndInput) verseEndInput.value = '';
   document.getElementById('vm-text').textContent = verse.text;
   document.getElementById('vm-note').value = ann.note || '';
   document.getElementById('vm-fav-icon').textContent = ann.favorite ? '⭐' : '☆';
@@ -2088,6 +2156,60 @@ function initSearch() {
 }
 
 function doSearch(query, filter) {
+  // Detectar referência bíblica direta (ex: Jo 3:16, João 3, Gn 1:1)
+  const refMatch = query.match(/^([1-3]?\s*[A-Za-záéíóúàãõâêîôûçÁÉÍÓÚÀÃÕÂÊÎÔÛÇ]+)\s+(\d+)(?::(\d+))?$/);
+  if(refMatch) {
+    const bookQuery = refMatch[1].toLowerCase().trim();
+    const chapNum = parseInt(refMatch[2]);
+    const verseNum = refMatch[3] ? parseInt(refMatch[3]) : null;
+    // Procurar livro por nome ou abreviação
+    const found = BOOKS_ORDER.find(b => {
+      const bl = b.toLowerCase();
+      return bl.startsWith(bookQuery) || bl.includes(bookQuery) ||
+        // Abreviações comuns
+        (bookQuery === 'jo' && b === 'João') ||
+        (bookQuery === 'gn' && b === 'Gênesis') ||
+        (bookQuery === 'ex' && b === 'Êxodo') ||
+        (bookQuery === 'lv' && b === 'Levítico') ||
+        (bookQuery === 'nm' && b === 'Números') ||
+        (bookQuery === 'dt' && b === 'Deuteronômio') ||
+        (bookQuery === 'mt' && b === 'Mateus') ||
+        (bookQuery === 'mc' && b === 'Marcos') ||
+        (bookQuery === 'lc' && b === 'Lucas') ||
+        (bookQuery === 'at' && b === 'Atos') ||
+        (bookQuery === 'rm' && b === 'Romanos') ||
+        (bookQuery === 'ap' && b === 'Apocalipse') ||
+        (bookQuery === 'sl' && b === 'Salmos') ||
+        (bookQuery === 'pv' && b === 'Provérbios') ||
+        (bookQuery === 'is' && b === 'Isaías') ||
+        (bookQuery === 'jr' && b === 'Jeremias');
+    });
+    if(found && BIBLE[found] && BIBLE[found][chapNum]) {
+      state.currentBook = found;
+      state.currentChap = chapNum;
+      document.getElementById('select-book').value = found;
+      updateChapSelect();
+      updateVerseSelect();
+      renderChapter();
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelector('[data-tab="reader"]').classList.add('active');
+      document.getElementById('page-reader').classList.add('active');
+      if(verseNum) {
+        setTimeout(() => {
+          const el = document.querySelector('.verse[data-verse="' + verseNum + '"]');
+          if(el) {
+            el.scrollIntoView({behavior:'smooth', block:'center'});
+            el.style.background = 'var(--gold-dim)';
+            setTimeout(() => { el.style.background = ''; }, 1500);
+          }
+        }, 200);
+      }
+      saveState();
+      return;
+    }
+  }
+
   filter = filter || document.querySelector('#search-filters .chip.active')?.dataset.filter || 'all';
   const results = document.getElementById('search-results');
 
@@ -2351,6 +2473,107 @@ async function driveLoad() {
     driveSetStatus('disconnected');
     showToast('Erro Drive: ' + e.message);
   }
+}
+
+
+// ============================================================
+// HISTÓRICO DE LEITURA
+// ============================================================
+function toggleMarkRead() {
+  const key = state.currentBook + ' ' + state.currentChap;
+  if(!state.readHistory) state.readHistory = {};
+  if(state.readHistory[key]) {
+    delete state.readHistory[key];
+  } else {
+    state.readHistory[key] = new Date().toLocaleDateString('pt-BR');
+  }
+  saveState();
+  updateMarkReadBtn();
+  renderHistory();
+}
+
+function updateMarkReadBtn() {
+  const btn = document.getElementById('mark-read-btn');
+  if(!btn) return;
+  const key = state.currentBook + ' ' + state.currentChap;
+  const lido = state.readHistory && state.readHistory[key];
+  btn.className = lido ? 'lido' : '';
+  btn.innerHTML = lido ? '&#10003; Lido em ' + state.readHistory[key] : '&#10003; Marcar como lido';
+}
+
+function initHistory() {
+  renderHistory();
+}
+
+function renderHistory() {
+  const list = document.getElementById('history-list');
+  const stats = document.getElementById('history-stats');
+  if(!list) return;
+  if(!state.readHistory) state.readHistory = {};
+
+  const entries = Object.entries(state.readHistory)
+    .sort((a, b) => {
+      // Ordenar por data mais recente
+      const da = a[1].split('/').reverse().join('-');
+      const db = b[1].split('/').reverse().join('-');
+      return db.localeCompare(da);
+    });
+
+  // Stats
+  const total = entries.length;
+  const hoje = new Date().toLocaleDateString('pt-BR');
+  const hoje_count = entries.filter(([,d]) => d === hoje).length;
+  if(stats) stats.innerHTML = `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 16px;text-align:center">
+      <div style="font-size:1.4rem;font-weight:700;color:var(--gold)">${total}</div>
+      <div style="font-size:0.75rem;color:var(--text3)">capítulos lidos</div>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 16px;text-align:center">
+      <div style="font-size:1.4rem;font-weight:700;color:var(--gold)">${hoje_count}</div>
+      <div style="font-size:0.75rem;color:var(--text3)">hoje</div>
+    </div>
+  `;
+
+  if(!entries.length) {
+    list.innerHTML = '<div class="empty-state"><div class="empty-icon">&#128218;</div><div class="empty-text">Nenhum capítulo lido ainda.<br>Use o botão ao final de cada capítulo!</div></div>';
+    return;
+  }
+
+  list.innerHTML = entries.map(([ref, date]) => `
+    <div class="history-card">
+      <div class="history-ref">${ref}</div>
+      <div class="history-date">${date}</div>
+      <button onclick="irParaRef('${ref}')" style="background:none;border:1px solid var(--border);color:var(--text3);border-radius:6px;padding:3px 10px;cursor:pointer;font-size:0.78rem">Ir</button>
+      <button onclick="desmarcarLido('${ref}')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:0.9rem" title="Remover">&#x2715;</button>
+    </div>
+  `).join('');
+}
+
+function desmarcarLido(ref) {
+  if(state.readHistory) {
+    delete state.readHistory[ref];
+    saveState();
+    renderHistory();
+  }
+}
+
+function irParaRef(ref) {
+  const parts = ref.split(' ');
+  const chap = parseInt(parts[parts.length - 1]);
+  const book = parts.slice(0, -1).join(' ');
+  if(!BIBLE[book]) return;
+  state.currentBook = book;
+  state.currentChap = chap;
+  document.getElementById('select-book').value = book;
+  updateChapSelect();
+  updateVerseSelect();
+  renderChapter();
+  // Ir para aba leitura
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelector('[data-tab="reader"]').classList.add('active');
+  document.getElementById('page-reader').classList.add('active');
+  saveState();
 }
 
 // ============================================================
