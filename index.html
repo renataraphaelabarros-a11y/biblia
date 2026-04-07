@@ -1238,7 +1238,7 @@ let state = {
   annotations: {}, // {ref: {note, highlight, tags, favorite, date}}
   planProgress: {}, // {weekDay: true/false}  e.g. "1_1": true
   studies: [],
-  tags: ['Promessa','Fé','Gratidão','Oração','Amor','Esperança','Sabedoria'],
+  tags: [],
   fontSize: 1.15,
   theme: 'dark',
   currentBook: 'Gênesis',
@@ -1482,6 +1482,7 @@ function initReader() {
   });
 
   bookSel.onchange = function() {
+    console.log('Livro mudou para:', bookSel.value);
     state.currentBook = bookSel.value;
     var caps = Object.keys(BIBLE[state.currentBook]).map(Number).sort(function(a,b){return a-b;});
     state.currentChap = caps[0];
@@ -1882,15 +1883,8 @@ function renderNoteFilters() {
   const wrap = document.getElementById('notes-filters');
   wrap.innerHTML = `
     <button class="chip active" data-filter="all">Todas</button>
-    <button class="chip" data-filter="favorites">⭐ Favoritos</button>
+    <button class="chip" data-filter="favorites">&#9733; Favoritos</button>
   `;
-  state.tags.forEach(tag => {
-    const btn = document.createElement('button');
-    btn.className = 'chip';
-    btn.dataset.filter = 'tag:' + tag;
-    btn.textContent = tag;
-    wrap.appendChild(btn);
-  });
   wrap.querySelectorAll('.chip').forEach(c => {
     c.addEventListener('click', () => {
       wrap.querySelectorAll('.chip').forEach(x => x.classList.remove('active'));
@@ -2337,6 +2331,8 @@ async function driveLoad() {
     renderNotes();
     renderStudies();
     updateStats();
+    // Re-renderizar capitulo para mostrar anotacoes no texto
+    if(typeof renderChapter === 'function') renderChapter();
   } catch(e) {
     driveSetStatus('disconnected');
     showToast('Erro Drive: ' + e.message);
