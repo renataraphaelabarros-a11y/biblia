@@ -959,11 +959,12 @@ option { background: var(--bg2); }
   background: var(--surface);
   border: 1px solid var(--border);
   color: var(--text);
-  border-radius: 20px;
-  padding: 6px 14px;
+  border-radius: 8px;
+  padding: 12px 8px;
   cursor: pointer;
-  font-size: 0.82rem;
-  white-space: nowrap;
+  font-size: 0.88rem;
+  width: 100%;
+  text-align: center;
   transition: all 0.15s;
 }
 .nav-btn-livro:hover, .nav-btn-livro.ativo {
@@ -1105,7 +1106,7 @@ option { background: var(--bg2); }
           <button id="nav-tab-verse" onclick="navShowTab('verse')" style="flex:1;padding:14px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text3);cursor:pointer;font-size:0.8rem;font-weight:600;letter-spacing:0.05em;text-transform:uppercase">Versículo</button>
         </div>
         <!-- Painéis -->
-        <div id="nav-panel-book" style="padding:12px 16px;display:flex;flex-wrap:wrap;gap:6px"></div>
+        <div id="nav-panel-book" style="padding:12px 16px;display:none;display:grid;grid-template-columns:repeat(3,1fr);gap:8px"></div>
         <div id="nav-panel-chap" style="padding:12px 16px;display:none;display:grid;grid-template-columns:repeat(4,1fr);gap:10px"></div>
         <div id="nav-panel-verse" style="padding:12px 16px;display:none;display:grid;grid-template-columns:repeat(4,1fr);gap:10px"></div>
       </div>
@@ -1652,7 +1653,7 @@ function navFechar() {
 
 function navShowTab(tab) {
   ['book','chap','verse'].forEach(t => {
-    document.getElementById('nav-panel-' + t).style.display = t === tab ? (t === 'book' ? 'flex' : 'grid') : 'none';
+    document.getElementById('nav-panel-' + t).style.display = t === tab ? 'grid' : 'none';
     document.getElementById('nav-tab-' + t).classList.toggle('ativo', t === tab);
   });
   if(tab === 'book') navRenderLivros();
