@@ -57,7 +57,7 @@
 
 /* ===== RESET ===== */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { font-size: 18px; }
+html { font-size: 20px; }
 body {
   font-family: 'Inter', sans-serif;
   background: var(--bg);
@@ -421,7 +421,7 @@ option { background: var(--bg2); }
   line-height: 1.9;
 }
 .verse:hover { background: var(--gold-dim); }
-.verse.highlighted { background: var(--gold-dim); border-bottom: 2px solid var(--gold); }
+.verse.highlighted, .verse.highlighted-gold { background: var(--gold-dim); border-bottom: 2px solid var(--gold); }
 .verse.highlighted-blue { background: rgba(74,144,217,0.15); border-bottom: 2px solid var(--accent); }
 .verse.highlighted-green { background: rgba(109,184,138,0.15); border-bottom: 2px solid var(--green); }
 .verse.highlighted-red { background: rgba(224,112,112,0.15); border-bottom: 2px solid var(--red); }
@@ -1125,6 +1125,20 @@ option { background: var(--bg2); }
         <span class="font-size-label" id="font-size-label">100%</span>
         <button class="font-btn" id="font-up">A+</button>
         <span style="font-size:0.72rem;color:var(--text3);margin-left:4px;">Tamanho</span>
+        <div style="width:1px;height:20px;background:var(--border);margin:0 6px"></div>
+        <button id="marker-mode-btn" title="Modo marca-texto" style="background:none;border:1px solid var(--border);border-radius:6px;padding:4px 10px;cursor:pointer;font-size:0.8rem;color:var(--text3);transition:all 0.2s;display:flex;align-items:center;gap:5px">
+          <span style="font-size:1rem">🖊</span> Marca-texto
+        </button>
+      </div>
+      <!-- Paleta de cores do marca-texto (oculta por padrão) -->
+      <div id="marker-palette" style="display:none;align-items:center;gap:8px;padding:8px 12px;background:var(--surface);border-radius:10px;border:1px solid var(--border);margin-bottom:8px;flex-wrap:wrap">
+        <span style="font-size:0.75rem;color:var(--text3)">Cor ativa:</span>
+        <button class="marker-color-btn active" data-mcolor="gold" title="Dourado" style="width:26px;height:26px;border-radius:50%;background:var(--gold);border:2px solid transparent;cursor:pointer;transition:transform 0.15s"></button>
+        <button class="marker-color-btn" data-mcolor="blue" title="Azul" style="width:26px;height:26px;border-radius:50%;background:var(--accent);border:2px solid transparent;cursor:pointer;transition:transform 0.15s"></button>
+        <button class="marker-color-btn" data-mcolor="green" title="Verde" style="width:26px;height:26px;border-radius:50%;background:var(--green);border:2px solid transparent;cursor:pointer;transition:transform 0.15s"></button>
+        <button class="marker-color-btn" data-mcolor="red" title="Vermelho" style="width:26px;height:26px;border-radius:50%;background:var(--red);border:2px solid transparent;cursor:pointer;transition:transform 0.15s"></button>
+        <button id="marker-clear-btn" title="Remover destaque" style="width:26px;height:26px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);cursor:pointer;font-size:0.75rem;color:var(--text3)">✕</button>
+        <span style="font-size:0.72rem;color:var(--text3);margin-left:4px">Toque num versículo para marcar</span>
       </div>
       
       <div class="reader-chap-nav">
@@ -1182,8 +1196,12 @@ option { background: var(--bg2); }
       <button class="study-btn" id="new-study-btn">✏ Novo Estudo</button>
       <div class="study-editor" id="study-editor">
         <input type="text" class="study-title-input" id="study-title" placeholder="Título do estudo...">
-        <div style="display:flex;gap:6px;margin-bottom:6px">
-          <button id="study-insert-verse-btn" style="background:none;border:1px solid var(--border);color:var(--text3);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:0.8rem;flex:1" title="Inserir versículo atual">+ Inserir versículo atual</button>
+        <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:6px">
+          <div style="display:flex;gap:6px;align-items:center">
+            <input type="text" id="study-verse-ref-input" placeholder="Ex: João 3:16  ou  Sl 23:1" autocomplete="off" spellcheck="false" style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 10px;color:var(--text);font-size:0.8rem;outline:none;font-family:inherit;transition:border-color 0.2s" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'">
+            <button id="study-insert-verse-btn" style="background:none;border:1px solid var(--border);color:var(--text3);border-radius:6px;padding:6px 12px;cursor:pointer;font-size:0.8rem;white-space:nowrap;transition:color 0.15s,border-color 0.15s" title="Inserir versículo" onmouseover="this.style.color='var(--gold)';this.style.borderColor='var(--gold)'" onmouseout="this.style.color='var(--text3)';this.style.borderColor='var(--border)'">+ Inserir</button>
+          </div>
+          <div style="font-size:0.71rem;color:var(--text3)">Digite a referência ou deixe em branco para inserir o versículo atual</div>
         </div>
         <textarea class="study-body-input" id="study-body" placeholder="Escreva suas reflexões..."></textarea>
         <div style="display:flex;gap:8px;margin-top:8px">
@@ -1211,6 +1229,13 @@ option { background: var(--bg2); }
         <button class="chip" data-filter="verses">Versículos</button>
         <button class="chip" data-filter="notes">Minhas Notas</button>
         <button class="chip" data-filter="favorites">Favoritos</button>
+        <button class="chip" data-filter="at">Antigo Test.</button>
+        <button class="chip" data-filter="nt">Novo Test.</button>
+      </div>
+      <div style="padding:6px 0 10px 0">
+        <select id="search-book-filter" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:0.82rem;font-family:inherit;outline:none;cursor:pointer;transition:border-color 0.2s" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'">
+          <option value="">Todos os livros</option>
+        </select>
       </div>
       <div id="search-results">
         <div class="empty-state">
@@ -1247,6 +1272,11 @@ option { background: var(--bg2); }
 
     <div class="vm-section-title">Anotação</div>
     <textarea class="vm-textarea" id="vm-note" placeholder="Suas reflexões sobre este versículo..."></textarea>
+
+    <div class="vm-section-title" style="margin-top:12px">Adicionar ao Estudo <span style="font-size:0.72rem;color:var(--text3);font-weight:normal">(opcional)</span></div>
+    <select id="vm-study-select" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:0.82rem;font-family:inherit;margin-bottom:4px;outline:none;cursor:pointer;transition:border-color 0.2s" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'">
+      <option value="">— Não adicionar —</option>
+    </select>
 
     <button class="vm-fav-btn" id="vm-fav-btn">
       <span id="vm-fav-icon">☆</span> Adicionar aos Favoritos
@@ -1372,6 +1402,7 @@ let state = {
   currentChap: 1,
 };
 let currentVerse = null; // {book, chap, verse, ref, text}
+let highlightMode = { active: false, color: 'gold' }; // modo marca-texto
 
 // ============================================================
 // PERSISTÊNCIA LOCAL
@@ -1639,6 +1670,40 @@ function initReader() {
     document.getElementById('bible-text').style.fontSize = state.fontSize + 'rem';
     updateFontSizeLabel(); saveState();
   });
+
+  // ---- Modo Marca-Texto ----
+  const markerBtn = document.getElementById('marker-mode-btn');
+  const markerPalette = document.getElementById('marker-palette');
+
+  markerBtn.addEventListener('click', () => {
+    highlightMode.active = !highlightMode.active;
+    markerPalette.style.display = highlightMode.active ? 'flex' : 'none';
+    if(highlightMode.active) {
+      markerBtn.style.background = 'var(--gold-dim)';
+      markerBtn.style.color = 'var(--gold)';
+      markerBtn.style.borderColor = 'var(--gold)';
+    } else {
+      markerBtn.style.background = 'none';
+      markerBtn.style.color = 'var(--text3)';
+      markerBtn.style.borderColor = 'var(--border)';
+    }
+  });
+
+  // Selecionar cor na paleta
+  document.querySelectorAll('.marker-color-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.marker-color-btn').forEach(b => b.style.border = '2px solid transparent');
+      btn.style.border = '3px solid var(--text)';
+      highlightMode.color = btn.dataset.mcolor;
+    });
+  });
+
+  // Remover destaque
+  document.getElementById('marker-clear-btn').addEventListener('click', () => {
+    document.querySelectorAll('.marker-color-btn').forEach(b => b.style.border = '2px solid transparent');
+    highlightMode.color = 'none';
+    document.getElementById('marker-clear-btn').style.border = '2px solid var(--gold)';
+  });
 }
 
 // ---- Funções do índice ----
@@ -1832,6 +1897,24 @@ function renderChapter() {
       const verseN = parseInt(el.dataset.verse);
       const ref = el.dataset.ref;
       const text = BIBLE[book]?.[chapN]?.[verseN] || '';
+
+      // Modo marca-texto: aplica cor diretamente sem abrir modal
+      if(highlightMode.active) {
+        const ann = state.annotations[ref] || {};
+        ann.highlight = highlightMode.color === 'none' ? null : highlightMode.color;
+        state.annotations[ref] = ann;
+        saveState();
+        // Atualizar classes do elemento imediatamente (sem re-renderizar tudo)
+        el.className = el.className.replace(/\bhighlighted(-\w+)?\b/g, '').trim();
+        if(ann.highlight) {
+          el.classList.add('highlighted-' + ann.highlight);
+        }
+        // Feedback tátil: piscar
+        el.style.opacity = '0.5';
+        setTimeout(() => { el.style.opacity = ''; }, 150);
+        return;
+      }
+
       document.getElementById('select-verse').value = verseN;
       openVerseModal({book, chap: chapN, verse: verseN, ref, text});
     });
@@ -2035,10 +2118,39 @@ function initVerseModal() {
       origAnn.favorite = ann.favorite || origAnn.favorite;
       state.annotations[currentVerse.ref] = origAnn;
     }
+
+    // Vincular ao estudo (opcional)
+    const studySel = document.getElementById('vm-study-select');
+    const studyVal = studySel ? studySel.value : '';
+    if(studyVal === 'new') {
+      // Criar novo estudo com o versículo e a anotação
+      const verseSnippet = currentVerse.text ? currentVerse.text.substring(0, 120) + (currentVerse.text.length > 120 ? '...' : '') : '';
+      const studyBody = '[' + refKey + '] "' + verseSnippet + '"' + (note ? '\n\n' + note : '');
+      state.studies.unshift({
+        id: Date.now(),
+        title: refKey,
+        body: studyBody,
+        date: new Date().toLocaleDateString('pt-BR')
+      });
+      showToast('Anotação salva e estudo criado!');
+    } else if(studyVal) {
+      // Adicionar ao estudo existente
+      const studyId = parseInt(studyVal);
+      const idx = state.studies.findIndex(s => s.id === studyId);
+      if(idx >= 0) {
+        const verseSnippet = currentVerse.text ? currentVerse.text.substring(0, 120) + (currentVerse.text.length > 120 ? '...' : '') : '';
+        const append = '\n\n[' + refKey + '] "' + verseSnippet + '"' + (note ? '\n' + note : '');
+        state.studies[idx].body = (state.studies[idx].body || '') + append;
+        state.studies[idx].edited = new Date().toLocaleDateString('pt-BR');
+        showToast('Anotação salva e adicionada ao estudo!');
+      }
+    } else {
+      showToast('Anotação salva ✓');
+    }
+
     saveState();
     renderNotes();
     renderChapter(); // atualiza nota inline no texto
-    showToast('Anotação salva v');
     closeVerseModal();
   });
 
@@ -2064,8 +2176,20 @@ function openVerseModal(verse) {
     document.querySelector(`.color-btn[data-color="${ann.highlight}"]`)?.classList.add('active');
   }
 
-  // Tags
-  // renderVmTags(ann.tags || []);
+  // Popular select de estudos
+  const sel = document.getElementById('vm-study-select');
+  sel.innerHTML = '<option value="">— Não adicionar —</option>';
+  state.studies.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.id;
+    opt.textContent = s.title || 'Sem título';
+    sel.appendChild(opt);
+  });
+  const newOpt = document.createElement('option');
+  newOpt.value = 'new';
+  newOpt.textContent = '+ Novo estudo...';
+  sel.appendChild(newOpt);
+  sel.value = '';
 
   document.getElementById('verse-modal').classList.add('open');
 }
@@ -2222,22 +2346,80 @@ function initStudies() {
   });
 
   document.getElementById('study-insert-verse-btn').addEventListener('click', () => {
-    // Inserir referência do versículo atual no cursor
-    const ref = state.currentBook + ' ' + state.currentChap + ':';
+    const refInput = document.getElementById('study-verse-ref-input').value.trim();
     const textarea = document.getElementById('study-body');
     const pos = textarea.selectionStart;
     const before = textarea.value.substring(0, pos);
     const after = textarea.value.substring(pos);
-    // Pegar texto do versículo atual se possível
+    let book, chapN, verseN, verseText = '';
+
+    if(refInput) {
+      // Tentar parsear referência digitada (ex: "João 3:16", "Sl 23:1", "Gn 1")
+      const m = refInput.match(/^([1-3]?\s*[A-Za-záéíóúàãõâêîôûçÁÉÍÓÚÀÃÕÂÊÎÔÛÇ]+)\s+(\d+)(?::(\d+))?$/);
+      if(m) {
+        const bookQ = m[1].toLowerCase().trim();
+        chapN = parseInt(m[2]);
+        verseN = m[3] ? parseInt(m[3]) : null;
+        book = BOOKS_ORDER.find(b => {
+          const bl = b.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+          const bq = bookQ.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+          return bl.startsWith(bq) || bl.includes(bq) ||
+            (bookQ==='jo'&&b==='João')||(bookQ==='gn'&&b==='Gênesis')||
+            (bookQ==='ex'&&b==='Êxodo')||(bookQ==='lv'&&b==='Levítico')||
+            (bookQ==='nm'&&b==='Números')||(bookQ==='dt'&&b==='Deuteronômio')||
+            (bookQ==='mt'&&b==='Mateus')||(bookQ==='mc'&&b==='Marcos')||
+            (bookQ==='lc'&&b==='Lucas')||(bookQ==='at'&&b==='Atos')||
+            (bookQ==='rm'&&b==='Romanos')||(bookQ==='ap'&&b==='Apocalipse')||
+            (bookQ==='sl'&&b==='Salmos')||(bookQ==='pv'&&b==='Provérbios')||
+            (bookQ==='is'&&b==='Isaías')||(bookQ==='jr'&&b==='Jeremias')||
+            (bookQ==='hb'&&b==='Hebreus')||(bookQ==='ef'&&b==='Efésios')||
+            (bookQ==='fl'&&b==='Filipenses')||(bookQ==='cl'&&b==='Colossenses')||
+            (bookQ==='gl'&&b==='Gálatas')||(bookQ==='tg'&&b==='Tiago');
+        });
+      }
+      if(book && BIBLE?.[book]?.[chapN]) {
+        const chapData = BIBLE[book][chapN];
+        if(verseN && chapData[verseN]) {
+          verseText = chapData[verseN];
+          const ref = book + ' ' + chapN + ':' + verseN;
+          const insert = '\n[' + ref + '] "' + verseText.substring(0, 120) + (verseText.length > 120 ? '..."' : '"') + '\n';
+          textarea.value = before + insert + after;
+          textarea.focus();
+          textarea.selectionStart = textarea.selectionEnd = pos + insert.length;
+          document.getElementById('study-verse-ref-input').value = '';
+          showToast('Versículo inserido!');
+        } else {
+          // Inserir capítulo inteiro resumido
+          const verseNums2 = Object.keys(chapData).map(Number).sort((a,b)=>a-b);
+          let chapInsert = '';
+          verseNums2.forEach(v => {
+            const vt = chapData[v];
+            chapInsert += '\n[' + book + ' ' + chapN + ':' + v + '] "' + vt.substring(0, 80) + (vt.length > 80 ? '..."' : '"');
+          });
+          textarea.value = before + chapInsert + '\n' + after;
+          textarea.focus();
+          textarea.selectionStart = textarea.selectionEnd = pos + chapInsert.length + 1;
+          document.getElementById('study-verse-ref-input').value = '';
+          showToast('Capítulo inserido!');
+        }
+        return;
+      } else {
+        showToast('Referência não encontrada. Verifique o livro/capítulo/versículo.');
+        return;
+      }
+    }
+
+    // Sem referência: inserir versículo atual
+    const ref = state.currentBook + ' ' + state.currentChap + ':';
     const chap = BIBLE?.[state.currentBook]?.[state.currentChap];
     const verseNums = chap ? Object.keys(chap).map(Number).sort((a,b)=>a-b) : [];
     const firstVerse = verseNums[0] || 1;
-    const verseText = chap?.[firstVerse] || '';
+    verseText = chap?.[firstVerse] || '';
     const insert = '\n[' + ref + firstVerse + '] "' + verseText.substring(0, 120) + (verseText.length > 120 ? '..."' : '"') + '\n';
     textarea.value = before + insert + after;
     textarea.focus();
     textarea.selectionStart = textarea.selectionEnd = pos + insert.length;
-    showToast('Versículo inserido!');
+    showToast('Versículo atual inserido!');
   });
 
   document.getElementById('study-save').addEventListener('click', () => {
@@ -2321,10 +2503,40 @@ function renderStudies() {
 // ============================================================
 // BUSCA
 // ============================================================
+
+// Livros do Antigo e Novo Testamento
+const OT_BOOKS = new Set([
+  'Gênesis','Êxodo','Levítico','Números','Deuteronômio','Josué','Juízes','Rute',
+  '1 Samuel','2 Samuel','1 Reis','2 Reis','1 Crônicas','2 Crônicas','Esdras',
+  'Neemias','Ester','Jó','Salmos','Provérbios','Eclesiastes','Cantares de Salomão',
+  'Isaías','Jeremias','Lamentações','Ezequiel','Daniel','Oseias','Joel','Amós',
+  'Obadias','Jonas','Miquéias','Naum','Habacuque','Sofonias','Ageu','Zacarias','Malaquias'
+]);
+const NT_BOOKS = new Set([
+  'Mateus','Marcos','Lucas','João','Atos','Romanos','1 Coríntios','2 Coríntios',
+  'Gálatas','Efésios','Filipenses','Colossenses','1 Tessalonicenses','2 Tessalonicenses',
+  '1 Timóteo','2 Timóteo','Tito','Filémon','Hebreus','Tiago','1 Pedro','2 Pedro',
+  '1 João','2 João','3 João','Judas','Apocalipse'
+]);
+
+// Normaliza texto para busca sem acento e sem maiúsculas
+function normalizeText(str) {
+  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+
 function initSearch() {
   const input = document.getElementById('search-input');
   const clearBtn = document.getElementById('search-clear');
   let searchTimeout;
+
+  // Popular select de livros
+  const bookSel = document.getElementById('search-book-filter');
+  BOOKS_ORDER.forEach(b => {
+    const opt = document.createElement('option');
+    opt.value = b; opt.textContent = b;
+    bookSel.appendChild(opt);
+  });
+  bookSel.addEventListener('change', () => doSearch(input.value));
 
   input.addEventListener('input', () => {
     clearBtn.style.display = input.value ? 'block' : 'none';
@@ -2335,6 +2547,7 @@ function initSearch() {
   clearBtn.addEventListener('click', () => {
     input.value = '';
     clearBtn.style.display = 'none';
+    bookSel.value = '';
     document.getElementById('search-results').innerHTML = `<div class="empty-state"><div class="empty-icon">⌕</div><div class="empty-text">Digite algo para buscar na Bíblia.</div></div>`;
   });
 
@@ -2403,6 +2616,7 @@ function doSearch(query, filter) {
   }
 
   filter = filter || document.querySelector('#search-filters .chip.active')?.dataset.filter || 'all';
+  const bookFilter = document.getElementById('search-book-filter')?.value || '';
   const results = document.getElementById('search-results');
 
   if(!query || query.length < 2) {
@@ -2412,23 +2626,29 @@ function doSearch(query, filter) {
 
   results.innerHTML = `<div class="loading"><div class="loading-cross">+</div><div class="loading-text">Buscando...</div></div>`;
 
-  const q = query.toLowerCase();
+  const qNorm = normalizeText(query);
   const found = [];
 
+  // Determinar livros a buscar baseado no filtro
+  let booksToSearch = BOOKS_ORDER;
+  if(filter === 'at') booksToSearch = BOOKS_ORDER.filter(b => OT_BOOKS.has(b));
+  else if(filter === 'nt') booksToSearch = BOOKS_ORDER.filter(b => NT_BOOKS.has(b));
+  if(bookFilter) booksToSearch = booksToSearch.filter(b => b === bookFilter);
+
   // Buscar em versículos
-  if((filter === 'all' || filter === 'verses') && BIBLE) {
+  if((filter === 'all' || filter === 'verses' || filter === 'at' || filter === 'nt') && BIBLE) {
     let count = 0;
-    outerLoop: for(const book of BOOKS_ORDER) {
+    outerLoop: for(const book of booksToSearch) {
       if(!BIBLE[book]) continue;
       for(const chap of Object.keys(BIBLE[book])) {
         for(const verse of Object.keys(BIBLE[book][chap])) {
           const text = BIBLE[book][chap][verse];
-          if(text.toLowerCase().includes(q)) {
+          if(normalizeText(text).includes(qNorm)) {
             const ref = `${book} ${chap}:${verse}`;
             const ann = state.annotations[ref] || {};
             found.push({type:'verse', ref, text, book, chap: parseInt(chap), verse: parseInt(verse), ann});
             count++;
-            if(count >= 50) break outerLoop;
+            if(count >= 60) break outerLoop;
           }
         }
       }
@@ -2438,7 +2658,11 @@ function doSearch(query, filter) {
   // Buscar em notas
   if(filter === 'all' || filter === 'notes') {
     Object.entries(state.annotations).forEach(([ref, ann]) => {
-      if(ann.note && ann.note.toLowerCase().includes(q)) {
+      if(ann.note && normalizeText(ann.note).includes(qNorm)) {
+        if(bookFilter) {
+          const m = ref.match(/^(.+) \d+:\d+$/);
+          if(m && m[1] !== bookFilter) return;
+        }
         found.push({type:'note', ref, text: ann.note, ann});
       }
     });
@@ -2450,6 +2674,7 @@ function doSearch(query, filter) {
       .filter(([,ann]) => ann.favorite)
       .forEach(([ref, ann]) => {
         const m = ref.match(/^(.+) (\d+):(\d+)$/);
+        if(bookFilter && m && m[1] !== bookFilter) return;
         const text = m && BIBLE ? BIBLE[m[1]]?.[m[2]]?.[m[3]] : '';
         if(text) found.push({type:'verse', ref, text, ann});
       });
@@ -2460,15 +2685,26 @@ function doSearch(query, filter) {
     return;
   }
 
+  // Highlight respeitando acentos: marca as palavras que correspondem ao query normalizado
+  function highlightText(text, q) {
+    if(!q) return text;
+    // Construir regex que ignora acentos substituindo cada letra por classe que aceita variações
+    const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    try {
+      return text.replace(new RegExp(escaped, 'gi'), m => `<span class="result-highlight">${m}</span>`);
+    } catch(e) {
+      return text;
+    }
+  }
+
   results.innerHTML = found.map(item => {
-    const highlighted = item.text.replace(
-      new RegExp(query, 'gi'),
-      m => `<span class="result-highlight">${m}</span>`
-    );
+    const highlighted = highlightText(item.text, query);
     const tags = item.ann?.tags?.map(t => `<span class="result-tag">${t}</span>`).join('') || '';
+    const testament = OT_BOOKS.has(item.book) ? '<span style="font-size:0.68rem;color:var(--text3);margin-left:4px">AT</span>' :
+                      NT_BOOKS.has(item.book) ? '<span style="font-size:0.68rem;color:var(--text3);margin-left:4px">NT</span>' : '';
     return `
       <div class="result-item" data-ref="${item.ref}" data-book="${item.book || ''}" data-chap="${item.chap || 0}" data-verse="${item.verse || 0}">
-        <div class="result-ref">${item.ref} ${item.ann?.favorite ? '⭐' : ''}</div>
+        <div class="result-ref">${item.ref}${testament} ${item.ann?.favorite ? '⭐' : ''}</div>
         <div class="result-text">${highlighted}</div>
         ${tags ? `<div class="result-tags">${tags}</div>` : ''}
       </div>
