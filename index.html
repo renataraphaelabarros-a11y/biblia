@@ -443,6 +443,34 @@ option { background: var(--bg2); }
 }
 .verse-inline-note:hover { opacity: 0.8; }
 
+/* Badge de hiperlinks entre versículos */
+.verse-link-badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  color: var(--accent);
+  background: rgba(74,144,217,0.12);
+  border: 1px solid rgba(74,144,217,0.3);
+  border-radius: 12px;
+  padding: 2px 8px;
+  margin-left: 6px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+.verse-link-badge:hover { background: rgba(74,144,217,0.25); }
+
+/* Popup de links */
+#verse-links-popup {
+  position: fixed;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  z-index: 200;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  max-width: 260px;
+}
+
 .verse-num {
   font-family: 'Cinzel', serif;
   font-size: 0.65rem;
@@ -1115,33 +1143,37 @@ option { background: var(--bg2); }
       <select id="select-book" style="display:none"></select>
       <select id="select-chap" style="display:none"></select>
       <select id="select-verse" style="display:none"></select>
-      <!-- Barra de referência atual -->
-      <div id="nav-ref-bar" style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:8px 12px;background:var(--surface);border-radius:10px;border:1px solid var(--border);cursor:pointer" onclick="navAbrir()">
-        <span style="flex:1;font-weight:600;color:var(--gold);font-size:0.95rem" id="nav-ref-display">Gênesis 1</span>
-        <span style="color:var(--text3);font-size:0.8rem">&#9660; Índice</span>
-      </div>
-      <div class="font-controls">
-        <button class="font-btn" id="font-down">A−</button>
-        <span class="font-size-label" id="font-size-label">100%</span>
-        <button class="font-btn" id="font-up">A+</button>
-        <span style="font-size:0.72rem;color:var(--text3);margin-left:4px;">Tamanho</span>
-        <div style="width:1px;height:20px;background:var(--border);margin:0 6px"></div>
-        <button id="marker-mode-btn" title="Modo marca-texto" style="background:none;border:1px solid var(--border);border-radius:6px;padding:4px 10px;cursor:pointer;font-size:0.8rem;color:var(--text3);transition:all 0.2s;display:flex;align-items:center;gap:5px">
-          <span style="font-size:1rem">🖊</span> Marca-texto
-        </button>
-      </div>
-      <!-- Paleta de cores do marca-texto (oculta por padrão) -->
-      <div id="marker-palette" style="display:none;align-items:center;gap:8px;padding:8px 12px;background:var(--surface);border-radius:10px;border:1px solid var(--border);margin-bottom:8px;flex-wrap:wrap">
-        <span style="font-size:0.75rem;color:var(--text3)">Cor ativa:</span>
-        <button class="marker-color-btn active" data-mcolor="gold" title="Dourado" style="width:26px;height:26px;border-radius:50%;background:var(--gold);border:2px solid transparent;cursor:pointer;transition:transform 0.15s"></button>
-        <button class="marker-color-btn" data-mcolor="blue" title="Azul" style="width:26px;height:26px;border-radius:50%;background:var(--accent);border:2px solid transparent;cursor:pointer;transition:transform 0.15s"></button>
-        <button class="marker-color-btn" data-mcolor="green" title="Verde" style="width:26px;height:26px;border-radius:50%;background:var(--green);border:2px solid transparent;cursor:pointer;transition:transform 0.15s"></button>
-        <button class="marker-color-btn" data-mcolor="red" title="Vermelho" style="width:26px;height:26px;border-radius:50%;background:var(--red);border:2px solid transparent;cursor:pointer;transition:transform 0.15s"></button>
-        <button id="marker-clear-btn" title="Remover destaque" style="width:26px;height:26px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);cursor:pointer;font-size:0.75rem;color:var(--text3)">✕</button>
-        <span style="font-size:0.72rem;color:var(--text3);margin-left:4px">Toque num versículo para marcar</span>
-      </div>
-      
-      <div class="reader-chap-nav">
+
+      <!-- ===== CABEÇALHO FIXO DO LEITOR ===== -->
+      <div id="reader-sticky-header" style="position:sticky;top:0;z-index:50;background:var(--bg);margin:-16px -16px 0;padding:8px 16px 10px;border-bottom:1px solid var(--border);box-shadow:0 2px 12px rgba(0,0,0,0.25)">
+        <!-- Barra de referência atual -->
+        <div id="nav-ref-bar" style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:7px 12px;background:var(--surface);border-radius:10px;border:1px solid var(--border);cursor:pointer" onclick="navAbrir()">
+          <span style="flex:1;font-weight:600;color:var(--gold);font-size:0.95rem" id="nav-ref-display">Gênesis 1</span>
+          <span style="color:var(--text3);font-size:0.8rem">&#9660; Índice</span>
+        </div>
+        <div class="font-controls">
+          <button class="font-btn" id="font-down">A−</button>
+          <span class="font-size-label" id="font-size-label">100%</span>
+          <button class="font-btn" id="font-up">A+</button>
+          <span style="font-size:0.72rem;color:var(--text3);margin-left:4px;">Tamanho</span>
+          <div style="width:1px;height:20px;background:var(--border);margin:0 6px"></div>
+          <button id="marker-mode-btn" title="Modo marca-texto" style="background:none;border:1px solid var(--border);border-radius:6px;padding:4px 10px;cursor:pointer;font-size:0.8rem;color:var(--text3);transition:all 0.2s;display:flex;align-items:center;gap:5px">
+            <span style="font-size:1rem">🖊</span> Marca-texto
+          </button>
+        </div>
+        <!-- Paleta de cores do marca-texto (oculta por padrão) -->
+        <div id="marker-palette" style="display:none;align-items:center;gap:8px;padding:6px 4px 2px;flex-wrap:wrap">
+          <span style="font-size:0.75rem;color:var(--text3)">Cor:</span>
+          <button class="marker-color-btn active" data-mcolor="gold" title="Dourado" style="width:26px;height:26px;border-radius:50%;background:var(--gold);border:2px solid transparent;cursor:pointer;transition:transform 0.15s"></button>
+          <button class="marker-color-btn" data-mcolor="blue" title="Azul" style="width:26px;height:26px;border-radius:50%;background:var(--accent);border:2px solid transparent;cursor:pointer;transition:transform 0.15s"></button>
+          <button class="marker-color-btn" data-mcolor="green" title="Verde" style="width:26px;height:26px;border-radius:50%;background:var(--green);border:2px solid transparent;cursor:pointer;transition:transform 0.15s"></button>
+          <button class="marker-color-btn" data-mcolor="red" title="Vermelho" style="width:26px;height:26px;border-radius:50%;background:var(--red);border:2px solid transparent;cursor:pointer;transition:transform 0.15s"></button>
+          <button id="marker-clear-btn" title="Remover destaque" style="width:26px;height:26px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);cursor:pointer;font-size:0.75rem;color:var(--text3)">✕</button>
+          <span style="font-size:0.72rem;color:var(--text3);margin-left:4px">Toque num versículo para marcar</span>
+        </div>
+      </div><!-- /reader-sticky-header -->
+
+      <div class="reader-chap-nav" style="margin-top:12px">
         <button class="chap-btn" id="prev-chap">← Anterior</button>
         <div class="chap-title" id="chap-title"></div>
         <button class="chap-btn" id="next-chap">Próximo →</button>
@@ -1278,6 +1310,16 @@ option { background: var(--bg2); }
       <option value="">— Não adicionar —</option>
     </select>
 
+    <div class="vm-section-title" style="margin-top:12px">🔗 Versículos Relacionados</div>
+    <div id="vm-links-list" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;min-height:0"></div>
+    <div style="display:flex;gap:6px;margin-bottom:4px">
+      <input type="text" id="vm-link-input" placeholder="Ex: Romanos 8:28" autocomplete="off" spellcheck="false"
+        style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:0.82rem;font-family:inherit;outline:none;transition:border-color 0.2s"
+        onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'">
+      <button id="vm-link-add-btn" style="background:var(--gold);color:#0d1b2a;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;font-size:0.82rem;font-weight:600;white-space:nowrap">Linkar</button>
+    </div>
+    <div style="font-size:0.7rem;color:var(--text3);margin-bottom:8px">O link aparece nos dois versículos e leva ao texto ao clicar</div>
+
     <button class="vm-fav-btn" id="vm-fav-btn">
       <span id="vm-fav-icon">☆</span> Adicionar aos Favoritos
     </button>
@@ -1291,6 +1333,26 @@ option { background: var(--bg2); }
 
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
+
+<!-- MODAL ESCRITA MANUAL -->
+<div id="hw-modal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.95);flex-direction:column">
+  <div style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:var(--bg2);border-bottom:1px solid var(--border)">
+    <span style="font-family:'Cinzel',serif;font-size:0.9rem;color:var(--gold);flex:1">✍ Escrita Manual</span>
+    <button id="hw-voice-btn" title="Ditado por voz" style="background:var(--surface);border:1px solid var(--border);color:var(--text2);border-radius:8px;padding:6px 12px;cursor:pointer;font-size:0.82rem">🎤 Voz</button>
+    <button id="hw-clear-btn" style="background:var(--surface);border:1px solid var(--border);color:var(--text2);border-radius:8px;padding:6px 12px;cursor:pointer;font-size:0.82rem">Limpar</button>
+    <button id="hw-close-btn" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:1.2rem;padding:4px 8px">✕</button>
+  </div>
+  <div style="padding:10px 16px 4px;font-size:0.78rem;color:var(--text3)">Escreva com o dedo no espaço abaixo — palavra por palavra</div>
+  <canvas id="hw-canvas" style="flex:1;background:#0d1b2a;cursor:crosshair;touch-action:none;display:block"></canvas>
+  <div style="padding:12px 16px;background:var(--bg2);border-top:1px solid var(--border)">
+    <div id="hw-recognized" style="min-height:36px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:0.9rem;color:var(--text);margin-bottom:10px;word-break:break-word"></div>
+    <div style="display:flex;gap:8px">
+      <button id="hw-undo-word-btn" style="background:none;border:1px solid var(--border);color:var(--text3);border-radius:8px;padding:8px 14px;cursor:pointer;font-size:0.82rem;flex:1">↩ Desfazer palavra</button>
+      <button id="hw-insert-btn" style="background:var(--gold);color:#0d1b2a;border:none;border-radius:8px;padding:8px 16px;cursor:pointer;font-size:0.85rem;font-weight:700;flex:2">Inserir texto</button>
+    </div>
+    <div id="hw-status" style="font-size:0.72rem;color:var(--text3);margin-top:6px;text-align:center"></div>
+  </div>
+</div>
 
 <script>
 // ============================================================
@@ -1396,6 +1458,8 @@ let state = {
   studies: [],
   tags: [],
   readHistory: {},
+  visitHistory: {}, // {ref: date} — capítulos visitados (independente de marcado como lido)
+  verseLinks: {},   // {ref: [linkedRef1, linkedRef2]} — hiperlinks entre versículos
   fontSize: 1.15,
   theme: 'dark',
   currentBook: 'Gênesis',
@@ -1450,6 +1514,7 @@ async function initApp() {
   initSearch();
   initVerseModal();
   initHistory();
+  initHandwriting();
   updateStats();
 }
 
@@ -1882,12 +1947,26 @@ function renderChapter() {
     if(note) {
       html += `<span class="verse-inline-note" data-ref="${ref}">✏ ${note}</span>`;
     }
+    // Badge de hiperlinks
+    const vlinks = state.verseLinks?.[ref];
+    if(vlinks && vlinks.length > 0) {
+      html += `<span class="verse-link-badge" data-ref="${ref}" title="Versículos relacionados" onclick="abrirLinksBadge(event,'${ref}')">🔗 ${vlinks.length}</span>`;
+    }
     html += `</div>`;
   });
 
   container.innerHTML = html;
   updateMarkReadBtn();
   navUpdateRefDisplay();
+
+  // Registrar visita automaticamente
+  if(!state.visitHistory) state.visitHistory = {};
+  const visitKey = state.currentBook + ' ' + state.currentChap;
+  const today = new Date().toLocaleDateString('pt-BR');
+  if(!state.visitHistory[visitKey]) {
+    state.visitHistory[visitKey] = today;
+    saveState();
+  }
 
   // Eventos nos versículos
   container.querySelectorAll('.verse').forEach(el => {
@@ -2067,10 +2146,116 @@ function initPlan() {
 // ============================================================
 // MODAL DE VERSÍCULO
 // ============================================================
+function renderVmLinks(ref) {
+  if(!state.verseLinks) state.verseLinks = {};
+  const links = state.verseLinks[ref] || [];
+  const el = document.getElementById('vm-links-list');
+  if(!el) return;
+  if(!links.length) {
+    el.innerHTML = '<span style="font-size:0.78rem;color:var(--text3)">Nenhum link ainda.</span>';
+    return;
+  }
+  el.innerHTML = links.map(lref => `
+    <span style="display:inline-flex;align-items:center;gap:5px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:0.8rem;color:var(--gold)">
+      <span style="cursor:pointer;text-decoration:underline" onclick="closeVerseModal();irParaRef('${lref}')">${lref}</span>
+      <button onclick="removerLink('${ref}','${lref}')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:0.8rem;padding:0;line-height:1" title="Remover link">✕</button>
+    </span>
+  `).join('');
+}
+
+function adicionarLink(refA, refB) {
+  if(!refA || !refB || refA === refB) return;
+  if(!state.verseLinks) state.verseLinks = {};
+  // Bidirectional
+  state.verseLinks[refA] = state.verseLinks[refA] || [];
+  state.verseLinks[refB] = state.verseLinks[refB] || [];
+  if(!state.verseLinks[refA].includes(refB)) state.verseLinks[refA].push(refB);
+  if(!state.verseLinks[refB].includes(refA)) state.verseLinks[refB].push(refA);
+  saveState();
+}
+
+function abrirLinksBadge(event, ref) {
+  event.stopPropagation();
+  // Remover popup existente
+  document.getElementById('verse-links-popup')?.remove();
+  const links = state.verseLinks?.[ref] || [];
+  if(!links.length) return;
+  const popup = document.createElement('div');
+  popup.id = 'verse-links-popup';
+  popup.innerHTML = `
+    <div style="font-size:0.75rem;color:var(--text3);margin-bottom:8px;font-weight:600">Versículos relacionados:</div>
+    ${links.map(lref => `
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <span style="color:var(--gold);font-size:0.85rem;cursor:pointer;text-decoration:underline;flex:1"
+          onclick="document.getElementById('verse-links-popup').remove();irParaRef('${lref}')">${lref}</span>
+      </div>
+    `).join('')}
+    <div style="text-align:right;margin-top:6px"><button onclick="document.getElementById('verse-links-popup').remove()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:0.8rem">Fechar</button></div>
+  `;
+  // Posicionar próximo ao clique
+  const rect = event.target.getBoundingClientRect();
+  popup.style.left = Math.min(rect.left, window.innerWidth - 280) + 'px';
+  popup.style.top = (rect.bottom + 6) + 'px';
+  document.body.appendChild(popup);
+  // Fechar ao clicar fora
+  setTimeout(() => {
+    document.addEventListener('click', function closer(e) {
+      if(!popup.contains(e.target)) { popup.remove(); document.removeEventListener('click', closer); }
+    });
+  }, 100);
+}
+
+function removerLink(refA, refB) {
+  if(!state.verseLinks) return;
+  if(state.verseLinks[refA]) state.verseLinks[refA] = state.verseLinks[refA].filter(r => r !== refB);
+  if(state.verseLinks[refB]) state.verseLinks[refB] = state.verseLinks[refB].filter(r => r !== refA);
+  saveState();
+  renderVmLinks(refA);
+  renderChapter();
+}
+
 function initVerseModal() {
   document.getElementById('vm-close-btn').addEventListener('click', closeVerseModal);
   document.getElementById('verse-modal').addEventListener('click', (e) => {
     if(e.target === document.getElementById('verse-modal')) closeVerseModal();
+  });
+
+  // Handler de adicionar link
+  document.getElementById('vm-link-add-btn').addEventListener('click', () => {
+    if(!currentVerse) return;
+    const input = document.getElementById('vm-link-input');
+    const rawRef = input.value.trim();
+    if(!rawRef) return;
+    // Tentar parsear referência
+    const m = rawRef.match(/^([1-3]?\s*[A-Za-záéíóúàãõâêîôûçÁÉÍÓÚÀÃÕÂÊÎÔÛÇ]+)\s+(\d+)(?::(\d+))?$/);
+    if(!m) { showToast('Formato inválido. Use: Livro Cap:Vers (ex: Rm 8:28)'); return; }
+    const bookQ = m[1].toLowerCase().trim();
+    const chapN = parseInt(m[2]);
+    const verseN = m[3] ? parseInt(m[3]) : 1;
+    const bookFound = BOOKS_ORDER.find(b => {
+      const bl = normalizeText(b); const bq = normalizeText(bookQ);
+      return bl.startsWith(bq) || bl.includes(bq) ||
+        (bookQ==='jo'&&b==='João')||(bookQ==='gn'&&b==='Gênesis')||
+        (bookQ==='rm'&&b==='Romanos')||(bookQ==='sl'&&b==='Salmos')||
+        (bookQ==='hb'&&b==='Hebreus')||(bookQ==='mt'&&b==='Mateus')||
+        (bookQ==='mc'&&b==='Marcos')||(bookQ==='lc'&&b==='Lucas')||
+        (bookQ==='at'&&b==='Atos')||(bookQ==='ap'&&b==='Apocalipse')||
+        (bookQ==='ef'&&b==='Efésios')||(bookQ==='fl'&&b==='Filipenses')||
+        (bookQ==='is'&&b==='Isaías')||(bookQ==='jr'&&b==='Jeremias')||
+        (bookQ==='gl'&&b==='Gálatas')||(bookQ==='cl'&&b==='Colossenses');
+    });
+    if(!bookFound || !BIBLE?.[bookFound]?.[chapN]) { showToast('Versículo não encontrado. Verifique o livro e capítulo.'); return; }
+    const linkedRef = bookFound + ' ' + chapN + ':' + verseN;
+    adicionarLink(currentVerse.ref, linkedRef);
+    input.value = '';
+    renderVmLinks(currentVerse.ref);
+    renderChapter();
+    showToast('Link criado! 🔗');
+  });
+
+  // Enter no campo de link
+  document.getElementById('vm-link-input').addEventListener('keydown', e => {
+    if(e.key === 'Enter') document.getElementById('vm-link-add-btn').click();
   });
 
   document.getElementById('vm-fav-btn').addEventListener('click', () => {
@@ -2175,6 +2360,10 @@ function openVerseModal(verse) {
   if(ann.highlight) {
     document.querySelector(`.color-btn[data-color="${ann.highlight}"]`)?.classList.add('active');
   }
+
+  // Popular links relacionados
+  document.getElementById('vm-link-input').value = '';
+  renderVmLinks(verse.ref);
 
   // Popular select de estudos
   const sel = document.getElementById('vm-study-select');
@@ -2714,11 +2903,7 @@ function doSearch(query, filter) {
   results.querySelectorAll('.result-item').forEach(el => {
     el.addEventListener('click', () => {
       const ref = el.dataset.ref;
-      const m = ref.match(/^(.+) (\d+):(\d+)$/);
-      if(!m || !BIBLE) return;
-      const book = m[1], chap = parseInt(m[2]), verse = parseInt(m[3]);
-      const text = BIBLE[book]?.[chap]?.[verse] || '';
-      openVerseModal({book, chap, verse, ref, text});
+      irParaRef(ref); // Navega direto para o texto bíblico no leitor
     });
   });
 }
@@ -2939,43 +3124,75 @@ function renderHistory() {
   const stats = document.getElementById('history-stats');
   if(!list) return;
   if(!state.readHistory) state.readHistory = {};
+  if(!state.visitHistory) state.visitHistory = {};
 
-  const entries = Object.entries(state.readHistory)
-    .sort((a, b) => {
-      // Ordenar por data mais recente
-      const da = a[1].split('/').reverse().join('-');
-      const db = b[1].split('/').reverse().join('-');
-      return db.localeCompare(da);
-    });
+  const readEntries = Object.entries(state.readHistory)
+    .sort((a, b) => b[1].split('/').reverse().join('-').localeCompare(a[1].split('/').reverse().join('-')));
 
-  // Stats
-  const total = entries.length;
+  // Capítulos visitados mas não marcados como lidos
+  const visitedOnly = Object.entries(state.visitHistory)
+    .filter(([ref]) => !state.readHistory[ref])
+    .sort((a, b) => b[1].split('/').reverse().join('-').localeCompare(a[1].split('/').reverse().join('-')));
+
   const hoje = new Date().toLocaleDateString('pt-BR');
-  const hoje_count = entries.filter(([,d]) => d === hoje).length;
+  const hojeRead = readEntries.filter(([,d]) => d === hoje).length;
+  const totalVisited = Object.keys(state.visitHistory).length;
+
   if(stats) stats.innerHTML = `
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 16px;text-align:center">
-      <div style="font-size:1.4rem;font-weight:700;color:var(--gold)">${total}</div>
-      <div style="font-size:0.75rem;color:var(--text3)">capítulos lidos</div>
+      <div style="font-size:1.4rem;font-weight:700;color:var(--gold)">${readEntries.length}</div>
+      <div style="font-size:0.75rem;color:var(--text3)">✓ lidos</div>
     </div>
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 16px;text-align:center">
-      <div style="font-size:1.4rem;font-weight:700;color:var(--gold)">${hoje_count}</div>
-      <div style="font-size:0.75rem;color:var(--text3)">hoje</div>
+      <div style="font-size:1.4rem;font-weight:700;color:var(--accent)">${totalVisited}</div>
+      <div style="font-size:0.75rem;color:var(--text3)">👁 visitados</div>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 16px;text-align:center">
+      <div style="font-size:1.4rem;font-weight:700;color:var(--gold)">${hojeRead}</div>
+      <div style="font-size:0.75rem;color:var(--text3)">hoje (lidos)</div>
     </div>
   `;
 
-  if(!entries.length) {
-    list.innerHTML = '<div class="empty-state"><div class="empty-icon">&#128218;</div><div class="empty-text">Nenhum capítulo lido ainda.<br>Use o botão ao final de cada capítulo!</div></div>';
+  let html = '';
+
+  if(readEntries.length) {
+    html += `<div class="section-title" style="margin-bottom:8px">✓ Marcados como Lidos</div>`;
+    html += readEntries.map(([ref, date]) => `
+      <div class="history-card">
+        <div class="history-ref">${ref}</div>
+        <div class="history-date">${date}</div>
+        <button onclick="irParaRef('${ref}')" style="background:none;border:1px solid var(--border);color:var(--text3);border-radius:6px;padding:3px 10px;cursor:pointer;font-size:0.78rem">Ir</button>
+        <button onclick="desmarcarLido('${ref}')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:0.9rem" title="Remover">&#x2715;</button>
+      </div>
+    `).join('');
+  }
+
+  if(visitedOnly.length) {
+    html += `<div class="section-title" style="margin-top:20px;margin-bottom:8px">👁 Consultados (não marcados como lidos)</div>`;
+    html += visitedOnly.map(([ref, date]) => `
+      <div class="history-card" style="opacity:0.8">
+        <div class="history-ref" style="color:var(--text2)">${ref}</div>
+        <div class="history-date">${date}</div>
+        <button onclick="irParaRef('${ref}')" style="background:none;border:1px solid var(--border);color:var(--text3);border-radius:6px;padding:3px 10px;cursor:pointer;font-size:0.78rem">Ir</button>
+        <button onclick="removerVisita('${ref}')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:0.9rem" title="Remover">&#x2715;</button>
+      </div>
+    `).join('');
+  }
+
+  if(!html) {
+    list.innerHTML = '<div class="empty-state"><div class="empty-icon">&#128218;</div><div class="empty-text">Nenhum capítulo consultado ainda.<br>Navegue pelos livros para começar!</div></div>';
     return;
   }
 
-  list.innerHTML = entries.map(([ref, date]) => `
-    <div class="history-card">
-      <div class="history-ref">${ref}</div>
-      <div class="history-date">${date}</div>
-      <button onclick="irParaRef('${ref}')" style="background:none;border:1px solid var(--border);color:var(--text3);border-radius:6px;padding:3px 10px;cursor:pointer;font-size:0.78rem">Ir</button>
-      <button onclick="desmarcarLido('${ref}')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:0.9rem" title="Remover">&#x2715;</button>
-    </div>
-  `).join('');
+  list.innerHTML = html;
+}
+
+function removerVisita(ref) {
+  if(state.visitHistory) {
+    delete state.visitHistory[ref];
+    saveState();
+    renderHistory();
+  }
 }
 
 function desmarcarLido(ref) {
@@ -3011,6 +3228,326 @@ function irParaRef(ref) {
     }, 200);
   }
   saveState();
+}
+
+// ============================================================
+// ESCRITA MANUAL (HANDWRITING → TEXTO)
+// ============================================================
+let hwActiveTextarea = null; // textarea alvo para inserção
+let hwRecognizedWords = []; // palavras reconhecidas acumuladas
+
+function abrirEscritaManual(textarea) {
+  hwActiveTextarea = textarea;
+  hwRecognizedWords = [];
+  document.getElementById('hw-recognized').textContent = '';
+  document.getElementById('hw-status').textContent = '';
+  const modal = document.getElementById('hw-modal');
+  modal.style.display = 'flex';
+  setTimeout(() => initHwCanvas(), 50);
+}
+
+function initHwCanvas() {
+  const canvas = document.getElementById('hw-canvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = canvas.offsetWidth;
+  canvas.height = canvas.offsetHeight;
+  ctx.strokeStyle = '#e8dcc8';
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  let drawing = false;
+  let strokes = []; // Para Handwriting Recognition API
+  let currentStroke = [];
+  let lastX, lastY;
+
+  function getPos(e) {
+    const r = canvas.getBoundingClientRect();
+    const t = e.touches ? e.touches[0] : e;
+    return { x: t.clientX - r.left, y: t.clientY - r.top };
+  }
+
+  function startDraw(e) {
+    e.preventDefault();
+    drawing = true;
+    const {x, y} = getPos(e);
+    lastX = x; lastY = y;
+    currentStroke = [{x, y, t: Date.now()}];
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+  }
+
+  function draw(e) {
+    if(!drawing) return;
+    e.preventDefault();
+    const {x, y} = getPos(e);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    currentStroke.push({x, y, t: Date.now()});
+    lastX = x; lastY = y;
+  }
+
+  function endDraw(e) {
+    if(!drawing) return;
+    e.preventDefault();
+    drawing = false;
+    if(currentStroke.length > 1) strokes.push(currentStroke);
+    // Auto-reconhecer após pausa de 1.5s sem novo traço
+    clearTimeout(canvas._recogTimeout);
+    canvas._recogTimeout = setTimeout(() => {
+      if(strokes.length > 0) reconhecerTracos(strokes, ctx, canvas, () => { strokes = []; });
+    }, 1500);
+  }
+
+  // Remove listeners antigos
+  const newCanvas = canvas.cloneNode(true);
+  canvas.parentNode.replaceChild(newCanvas, canvas);
+  const nc = document.getElementById('hw-canvas');
+  const nctx = nc.getContext('2d');
+  nctx.strokeStyle = '#e8dcc8';
+  nctx.lineWidth = 3;
+  nctx.lineCap = 'round';
+  nctx.lineJoin = 'round';
+
+  // Variáveis compartilhadas no closure via objeto
+  const state2 = { drawing: false, strokes: [], currentStroke: [], lastX: 0, lastY: 0 };
+
+  function getPos2(e) {
+    const r = nc.getBoundingClientRect();
+    const t = e.touches ? e.touches[0] : e;
+    return { x: t.clientX - r.left, y: t.clientY - r.top };
+  }
+
+  nc.addEventListener('mousedown', function(e) {
+    state2.drawing = true;
+    const {x, y} = getPos2(e);
+    state2.lastX = x; state2.lastY = y;
+    state2.currentStroke = [{x, y, t: Date.now()}];
+    nctx.beginPath(); nctx.moveTo(x, y);
+  });
+  nc.addEventListener('mousemove', function(e) {
+    if(!state2.drawing) return;
+    const {x, y} = getPos2(e);
+    nctx.lineTo(x, y); nctx.stroke();
+    nctx.beginPath(); nctx.moveTo(x, y);
+    state2.currentStroke.push({x, y, t: Date.now()});
+  });
+  nc.addEventListener('mouseup', function(e) {
+    if(!state2.drawing) return;
+    state2.drawing = false;
+    if(state2.currentStroke.length > 1) state2.strokes.push([...state2.currentStroke]);
+    state2.currentStroke = [];
+    clearTimeout(nc._rt);
+    nc._rt = setTimeout(() => {
+      if(state2.strokes.length > 0) {
+        reconhecerTracos(state2.strokes, nctx, nc, () => { state2.strokes = []; });
+      }
+    }, 1500);
+  });
+  nc.addEventListener('touchstart', function(e) {
+    e.preventDefault();
+    state2.drawing = true;
+    const {x, y} = getPos2(e);
+    state2.lastX = x; state2.lastY = y;
+    state2.currentStroke = [{x, y, t: Date.now()}];
+    nctx.beginPath(); nctx.moveTo(x, y);
+  }, {passive: false});
+  nc.addEventListener('touchmove', function(e) {
+    e.preventDefault();
+    if(!state2.drawing) return;
+    const {x, y} = getPos2(e);
+    nctx.lineTo(x, y); nctx.stroke();
+    nctx.beginPath(); nctx.moveTo(x, y);
+    state2.currentStroke.push({x, y, t: Date.now()});
+  }, {passive: false});
+  nc.addEventListener('touchend', function(e) {
+    e.preventDefault();
+    if(!state2.drawing) return;
+    state2.drawing = false;
+    if(state2.currentStroke.length > 1) state2.strokes.push([...state2.currentStroke]);
+    state2.currentStroke = [];
+    clearTimeout(nc._rt);
+    nc._rt = setTimeout(() => {
+      if(state2.strokes.length > 0) {
+        reconhecerTracos(state2.strokes, nctx, nc, () => { state2.strokes = []; });
+      }
+    }, 1500);
+  }, {passive: false});
+}
+
+async function reconhecerTracos(strokes, ctx, canvas) {
+  const statusEl = document.getElementById('hw-status');
+  statusEl.textContent = 'Reconhecendo...';
+
+  // Tentar Handwriting Recognition API (Chrome experimental)
+  if('handwriting' in navigator) {
+    try {
+      const recognizer = await navigator.handwriting.createRecognizer({languages: ['pt']});
+      const drawing = recognizer.startDrawing({hints: {recognitionType: 'text'}});
+      strokes.forEach(stroke => {
+        drawing.addStroke(new HandwritingStroke());
+        stroke.forEach(pt => drawing.addPoint(pt.x, pt.y, pt.t));
+      });
+      const predictions = await drawing.getPrediction();
+      if(predictions.length > 0) {
+        const word = predictions[0].text;
+        hwRecognizedWords.push(word);
+        atualizarTextoReconhecido();
+        limparCanvas(ctx, canvas);
+        statusEl.textContent = `✓ Reconhecido: "${word}"`;
+        return;
+      }
+    } catch(e) { /* API não disponível */ }
+  }
+
+  // Fallback: usar Google IME (handwriting) via fetch
+  try {
+    const inkData = strokes.map(stroke => ({
+      x: stroke.map(p => p.x),
+      y: stroke.map(p => p.y),
+      t: stroke.map(p => p.t)
+    }));
+    const body = JSON.stringify({
+      options: 'enable_pre_space',
+      requests: [{
+        writing_guide: { writing_area_width: canvas.width, writing_area_height: canvas.height },
+        ink: inkData,
+        language: 'pt'
+      }]
+    });
+    const resp = await fetch('https://inputtools.google.com/request?ime=handwriting&app=mobilesearch&cs=1&oe=UTF-8', {
+      method: 'POST', headers: {'Content-Type': 'application/json'}, body
+    });
+    if(resp.ok) {
+      const data = await resp.json();
+      if(data[0] === 'SUCCESS' && data[1]?.[0]?.[1]?.[0]) {
+        const word = data[1][0][1][0];
+        hwRecognizedWords.push(word);
+        atualizarTextoReconhecido();
+        limparCanvas(ctx, canvas);
+        statusEl.textContent = `✓ Reconhecido: "${word}"`;
+        return;
+      }
+    }
+  } catch(e) { /* CORS ou rede */ }
+
+  // Fallback final: instrução ao usuário
+  statusEl.textContent = 'Reconhecimento não disponível neste navegador. Use o botão 🎤 Voz ou o teclado.';
+  limparCanvas(ctx, canvas);
+}
+
+function limparCanvas(ctx, canvas) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+function atualizarTextoReconhecido() {
+  const el = document.getElementById('hw-recognized');
+  el.textContent = hwRecognizedWords.join(' ');
+}
+
+function initHandwriting() {
+  // Fechar
+  document.getElementById('hw-close-btn').addEventListener('click', () => {
+    document.getElementById('hw-modal').style.display = 'none';
+    hwActiveTextarea = null;
+  });
+
+  // Limpar canvas
+  document.getElementById('hw-clear-btn').addEventListener('click', () => {
+    const nc = document.getElementById('hw-canvas');
+    nc.getContext('2d').clearRect(0, 0, nc.width, nc.height);
+    hwRecognizedWords = [];
+    document.getElementById('hw-recognized').textContent = '';
+    document.getElementById('hw-status').textContent = '';
+  });
+
+  // Desfazer última palavra
+  document.getElementById('hw-undo-word-btn').addEventListener('click', () => {
+    if(hwRecognizedWords.length > 0) {
+      hwRecognizedWords.pop();
+      atualizarTextoReconhecido();
+    }
+  });
+
+  // Inserir texto na textarea ativa
+  document.getElementById('hw-insert-btn').addEventListener('click', () => {
+    const text = document.getElementById('hw-recognized').textContent.trim();
+    if(!text) { showToast('Nenhum texto para inserir.'); return; }
+    if(hwActiveTextarea) {
+      const pos = hwActiveTextarea.selectionStart || hwActiveTextarea.value.length;
+      const before = hwActiveTextarea.value.substring(0, pos);
+      const after = hwActiveTextarea.value.substring(pos);
+      const space = before && !before.endsWith(' ') && !before.endsWith('\n') ? ' ' : '';
+      hwActiveTextarea.value = before + space + text + after;
+      hwActiveTextarea.focus();
+      const newPos = pos + space.length + text.length;
+      hwActiveTextarea.selectionStart = hwActiveTextarea.selectionEnd = newPos;
+    }
+    document.getElementById('hw-modal').style.display = 'none';
+    hwActiveTextarea = null;
+    hwRecognizedWords = [];
+    showToast('Texto inserido!');
+  });
+
+  // Voz (Web Speech API)
+  document.getElementById('hw-voice-btn').addEventListener('click', () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if(!SpeechRecognition) {
+      showToast('Reconhecimento de voz não suportado neste navegador.');
+      return;
+    }
+    const recog = new SpeechRecognition();
+    recog.lang = 'pt-BR';
+    recog.interimResults = false;
+    recog.maxAlternatives = 1;
+    document.getElementById('hw-status').textContent = '🎤 Ouvindo... fale agora';
+    document.getElementById('hw-voice-btn').style.background = 'var(--red)';
+    document.getElementById('hw-voice-btn').style.color = '#fff';
+    recog.start();
+    recog.onresult = (e) => {
+      const spoken = e.results[0][0].transcript;
+      hwRecognizedWords.push(spoken);
+      atualizarTextoReconhecido();
+      document.getElementById('hw-status').textContent = `✓ "${spoken}"`;
+      document.getElementById('hw-voice-btn').style.background = '';
+      document.getElementById('hw-voice-btn').style.color = '';
+    };
+    recog.onerror = () => {
+      document.getElementById('hw-status').textContent = 'Erro no microfone.';
+      document.getElementById('hw-voice-btn').style.background = '';
+      document.getElementById('hw-voice-btn').style.color = '';
+    };
+    recog.onend = () => {
+      document.getElementById('hw-voice-btn').style.background = '';
+      document.getElementById('hw-voice-btn').style.color = '';
+    };
+  });
+
+  // Adicionar botão ✍ nas textareas de estudos e notas
+  addHwButtonToTextarea('study-body');
+  addHwButtonToTextarea('vm-note');
+}
+
+function addHwButtonToTextarea(textareaId) {
+  const ta = document.getElementById(textareaId);
+  if(!ta) return;
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.title = 'Escrita manual';
+  btn.textContent = '✍';
+  btn.style.cssText = 'background:none;border:1px solid var(--border);color:var(--text3);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:1rem;position:absolute;bottom:8px;right:8px;transition:color 0.15s,border-color 0.15s;z-index:2';
+  btn.onmouseover = () => { btn.style.color='var(--gold)'; btn.style.borderColor='var(--gold)'; };
+  btn.onmouseout = () => { btn.style.color='var(--text3)'; btn.style.borderColor='var(--border)'; };
+  btn.addEventListener('click', (e) => {
+    e.preventDefault();
+    abrirEscritaManual(ta);
+  });
+  // Wrapper relativo
+  const wrapper = ta.parentElement;
+  if(wrapper && getComputedStyle(wrapper).position === 'static') wrapper.style.position = 'relative';
+  ta.parentElement.appendChild(btn);
 }
 
 // ============================================================
