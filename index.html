@@ -134,7 +134,7 @@ body {
 }
 
 /* ===== APP PRINCIPAL ===== */
-#app { display: none; flex-direction: column; min-height: 100vh; }
+#app { display: none; flex-direction: column; height: 100vh; overflow: hidden; }
 
 /* ===== NAVBAR ===== */
 .navbar {
@@ -1312,8 +1312,9 @@ option { background: var(--bg2); }
 
     <div class="vm-section-title" style="margin-top:12px">🔗 Versículos Relacionados</div>
     <div id="vm-links-list" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;min-height:0"></div>
+    <datalist id="vm-link-books-datalist"></datalist>
     <div style="display:flex;gap:6px;margin-bottom:4px">
-      <input type="text" id="vm-link-input" placeholder="Ex: Romanos 8:28" autocomplete="off" spellcheck="false"
+      <input type="text" id="vm-link-input" placeholder="Ex: Romanos 8:28" list="vm-link-books-datalist" autocomplete="on" spellcheck="false"
         style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:0.82rem;font-family:inherit;outline:none;transition:border-color 0.2s"
         onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'">
       <button id="vm-link-add-btn" style="background:var(--gold);color:#0d1b2a;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;font-size:0.82rem;font-weight:600;white-space:nowrap">Linkar</button>
@@ -1534,11 +1535,62 @@ async function loadBible() {
   try {
     const r = await fetch(BIBLE_URL);
     BIBLE = await r.json();
+    normalizeBibleData(); // corrigir versículos mesclados
     showToast('Bíblia carregada v');
     updateHome(); // atualizar versículo do dia com texto real
   } catch(e) {
     showToast('Erro ao carregar o texto bíblico');
   }
+}
+
+// Corrige capítulos onde vários versículos foram mesclados em uma única entrada
+// Ex: Gênesis 5 chave "4" contém "1 Este é... 2 homem e... 3 E viveu..."
+function normalizeBibleData() {
+  if(!BIBLE) return;
+  for(const book of Object.keys(BIBLE)) {
+    for(const chap of Object.keys(BIBLE[book])) {
+      const verseObj = BIBLE[book][chap];
+      const newObj = {};
+      let changed = false;
+      for(const key of Object.keys(verseObj)) {
+        const text = verseObj[key];
+        const split = splitMergedVerse(text);
+        if(split && split.length > 1) {
+          changed = true;
+          split.forEach(({verse, text: vtext}) => { newObj[verse] = vtext; });
+        } else {
+          newObj[key] = text;
+        }
+      }
+      if(changed) BIBLE[book][chap] = newObj;
+    }
+  }
+}
+
+// Tenta dividir um texto que contém múltiplos versículos embutidos
+// Retorna array de {verse, text} ou null se não for mesclado
+function splitMergedVerse(text) {
+  if(!text) return null;
+  // Deve começar com número + espaço (ex: "1 Este é...")
+  const firstMatch = text.match(/^(\d+)\s+/);
+  if(!firstMatch) return null;
+  const firstNum = parseInt(firstMatch[1]);
+  // Verificar se tem padrão de múltiplos versículos: "... . N texto..."
+  if(!/[.!?;]\s+\d+\s+[A-ZÁÉÍÓÚ]/.test(text) && !/[.!?;]\s+\d+\s+[a-záéíóú]/.test(text)) return null;
+
+  // Dividir: após pontuação + espaço + número + espaço (início de próximo versículo)
+  // Usa lookahead para não consumir o número
+  const parts = text.split(/(?<=[.!?;,])\s+(?=\d+\s)/);
+  if(parts.length <= 1) return null;
+
+  const result = [];
+  for(const part of parts) {
+    const m = part.match(/^(\d+)\s+([\s\S]+)$/);
+    if(m) {
+      result.push({ verse: parseInt(m[1]), text: m[2].trim() });
+    }
+  }
+  return result.length > 1 ? result : null;
 }
 
 // ============================================================
@@ -1779,6 +1831,11 @@ function navAbrir() {
 
 function navFechar() {
   document.getElementById('nav-index').style.display = 'none';
+  // Garante que o capítulo selecionado é renderizado (registra visita no histórico)
+  updateChapSelect();
+  updateVerseSelect();
+  renderChapter();
+  saveState();
 }
 
 function navShowTab(tab) {
@@ -2258,6 +2315,16 @@ function initVerseModal() {
     if(e.key === 'Enter') document.getElementById('vm-link-add-btn').click();
   });
 
+  // Popular datalist com livros bíblicos para autocomplete
+  const datalist = document.getElementById('vm-link-books-datalist');
+  if(datalist && BOOKS_ORDER) {
+    BOOKS_ORDER.forEach(book => {
+      const opt = document.createElement('option');
+      opt.value = book + ' ';
+      datalist.appendChild(opt);
+    });
+  }
+
   document.getElementById('vm-fav-btn').addEventListener('click', () => {
     if(!currentVerse) return;
     const ann = state.annotations[currentVerse.ref] || {};
@@ -2397,11 +2464,46 @@ function closeVerseModal() {
 
 
 
+function renderLinkedVerses() {
+  const list = document.getElementById('notes-list');
+  if(!state.verseLinks) state.verseLinks = {};
+  const linked = Object.entries(state.verseLinks).filter(([,links]) => links && links.length > 0);
+  if(!linked.length) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">🔗</div><div class="empty-text">Nenhum versículo linkado ainda.<br>Abra um versículo e crie um link na seção "Versículos Relacionados".</div></div>`;
+    return;
+  }
+  list.innerHTML = linked.map(([ref, links]) => {
+    const m = ref.match(/^(.+) (\d+):(\d+)$/);
+    const verseText = (m && BIBLE) ? (BIBLE[m[1]]?.[m[2]]?.[m[3]] || '') : '';
+    const linksHtml = links.map(lref => `
+      <span style="display:inline-flex;align-items:center;gap:5px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:3px 10px;font-size:0.8rem;margin:2px">
+        <span style="color:var(--gold);cursor:pointer;text-decoration:underline" onclick="irParaRef('${lref}')">${lref}</span>
+        <button onclick="excluirLinkDiretamente('${ref}','${lref}')" title="Remover link" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:0.75rem;padding:0;line-height:1">✕</button>
+      </span>
+    `).join('');
+    return `
+      <div class="note-card" style="cursor:pointer" onclick="irParaRef('${ref}')">
+        <div class="note-ref" style="color:var(--accent)">${ref} 🔗</div>
+        ${verseText ? `<div class="note-verse" style="font-size:0.82rem">"${verseText.substring(0,100)}${verseText.length>100?'...':''}"</div>` : ''}
+        <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:2px">${linksHtml}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function excluirLinkDiretamente(refA, refB) {
+  removerLink(refA, refB);
+  renderLinkedVerses();
+  renderChapter();
+  showToast('Link removido!');
+}
+
 function renderNoteFilters() {
   const wrap = document.getElementById('notes-filters');
   wrap.innerHTML = `
     <button class="chip active" data-filter="all">Todas</button>
     <button class="chip" data-filter="favorites">&#9733; Favoritos</button>
+    <button class="chip" data-filter="links">🔗 Linkados</button>
   `;
   wrap.querySelectorAll('.chip').forEach(c => {
     c.addEventListener('click', () => {
@@ -2446,6 +2548,12 @@ function excluirNota(ev, ref) {
 function renderNotes(filter, search) {
   filter = filter || document.querySelector('#notes-filters .chip.active')?.dataset.filter || 'all';
   search = search ?? document.getElementById('notes-search').value;
+
+  // Modo "Linkados": mostrar versículos com hiperlinks
+  if(filter === 'links') {
+    renderLinkedVerses();
+    return;
+  }
 
   const list = document.getElementById('notes-list');
   const entries = Object.entries(state.annotations)
@@ -2713,6 +2821,42 @@ function normalizeText(str) {
   return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 }
 
+// Verifica se a query é uma palavra EXATA no texto (normalizado, sem acento)
+// Ex: "eu" NÃO bate "eunuco"; "verao" bate "verão" (normalização remove acento)
+function matchesWordStart(normText, normQuery) {
+  if(!normQuery) return false;
+  // Divide em palavras e verifica igualdade exata (após normalização)
+  const words = normText.split(/[^a-z0-9]+/);
+  return words.some(w => w === normQuery);
+}
+
+// Destaca ocorrências no texto original respeitando palavra EXATA
+function highlightWordStart(text, query) {
+  if(!query || !text) return text;
+  const qNorm = normalizeText(query);
+  const tNorm = normalizeText(text);
+  let result = '';
+  let i = 0;
+  // Percorre o texto normalizado procurando palavras completas iguais à query
+  while(i < tNorm.length) {
+    const prevChar = i > 0 ? tNorm[i-1] : ' ';
+    const isWordStart = /[^a-z0-9]/.test(prevChar);
+    if(isWordStart && tNorm.startsWith(qNorm, i)) {
+      // Verifica que a palavra termina aqui (char seguinte não é letra/dígito)
+      const afterIdx = i + qNorm.length;
+      const afterChar = afterIdx < tNorm.length ? tNorm[afterIdx] : ' ';
+      if(/[^a-z0-9]/.test(afterChar)) {
+        result += '<span class="result-highlight">' + text.slice(i, afterIdx) + '</span>';
+        i = afterIdx;
+        continue;
+      }
+    }
+    result += text[i];
+    i++;
+  }
+  return result;
+}
+
 function initSearch() {
   const input = document.getElementById('search-input');
   const clearBtn = document.getElementById('search-clear');
@@ -2824,7 +2968,7 @@ function doSearch(query, filter) {
   else if(filter === 'nt') booksToSearch = BOOKS_ORDER.filter(b => NT_BOOKS.has(b));
   if(bookFilter) booksToSearch = booksToSearch.filter(b => b === bookFilter);
 
-  // Buscar em versículos
+  // Buscar em versículos (word-start: "veu" não bate "viveu")
   if((filter === 'all' || filter === 'verses' || filter === 'at' || filter === 'nt') && BIBLE) {
     let count = 0;
     outerLoop: for(const book of booksToSearch) {
@@ -2832,7 +2976,7 @@ function doSearch(query, filter) {
       for(const chap of Object.keys(BIBLE[book])) {
         for(const verse of Object.keys(BIBLE[book][chap])) {
           const text = BIBLE[book][chap][verse];
-          if(normalizeText(text).includes(qNorm)) {
+          if(matchesWordStart(normalizeText(text), qNorm)) {
             const ref = `${book} ${chap}:${verse}`;
             const ann = state.annotations[ref] || {};
             found.push({type:'verse', ref, text, book, chap: parseInt(chap), verse: parseInt(verse), ann});
@@ -2844,10 +2988,10 @@ function doSearch(query, filter) {
     }
   }
 
-  // Buscar em notas
+  // Buscar em notas (word-start)
   if(filter === 'all' || filter === 'notes') {
     Object.entries(state.annotations).forEach(([ref, ann]) => {
-      if(ann.note && normalizeText(ann.note).includes(qNorm)) {
+      if(ann.note && matchesWordStart(normalizeText(ann.note), qNorm)) {
         if(bookFilter) {
           const m = ref.match(/^(.+) \d+:\d+$/);
           if(m && m[1] !== bookFilter) return;
@@ -2874,20 +3018,8 @@ function doSearch(query, filter) {
     return;
   }
 
-  // Highlight respeitando acentos: marca as palavras que correspondem ao query normalizado
-  function highlightText(text, q) {
-    if(!q) return text;
-    // Construir regex que ignora acentos substituindo cada letra por classe que aceita variações
-    const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    try {
-      return text.replace(new RegExp(escaped, 'gi'), m => `<span class="result-highlight">${m}</span>`);
-    } catch(e) {
-      return text;
-    }
-  }
-
   results.innerHTML = found.map(item => {
-    const highlighted = highlightText(item.text, query);
+    const highlighted = highlightWordStart(item.text, query);
     const tags = item.ann?.tags?.map(t => `<span class="result-tag">${t}</span>`).join('') || '';
     const testament = OT_BOOKS.has(item.book) ? '<span style="font-size:0.68rem;color:var(--text3);margin-left:4px">AT</span>' :
                       NT_BOOKS.has(item.book) ? '<span style="font-size:0.68rem;color:var(--text3);margin-left:4px">NT</span>' : '';
