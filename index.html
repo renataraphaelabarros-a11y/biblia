@@ -1988,18 +1988,7 @@ function renderChapter() {
     html += `<div class="verse-block">`;
     html += `<span class="verse ${hlClass}" data-ref="${ref}" data-book="${state.currentBook}" data-chap="${state.currentChap}" data-verse="${v}">`;
     const rawText = chap[v];
-    const titleMatch = rawText.match(/^(.*?[.!?!])\s+([A-ZÀ-ÜÁÉÍÓÚ][^.!?]{10,80})$/);
-    const verseText = titleMatch ? titleMatch[1] : rawText;
-    // Guardar titulo para mostrar antes do proximo versiculo
-    if(v > 1) {
-      const prevRef = `${state.currentBook} ${state.currentChap}:${v-1}`;
-      // titulo ja foi injetado na iteracao anterior
-    }
-    html += `<sup class="verse-num">${v}</sup>${verseText}`;
-    // Titulo desta linha aparece ANTES do proximo versiculo
-    if(titleMatch) {
-      html += `</span></div><div class="section-title-inline">${titleMatch[2]}</div><div class="verse-block"><span class="verse ${hlClass}" data-ref="${ref}" data-book="${state.currentBook}" data-chap="${state.currentChap}" data-verse="${v}">`;
-    }
+    html += `<sup class="verse-num">${v}</sup>${rawText}`;
     html += `</span>`;
     if(note) {
       html += `<span class="verse-inline-note" data-ref="${ref}">✏ ${note}</span>`;
@@ -2016,12 +2005,17 @@ function renderChapter() {
   updateMarkReadBtn();
   navUpdateRefDisplay();
 
-  // Registrar visita automaticamente
+  // Registrar visita automaticamente (padrão: versículo 1)
   if(!state.visitHistory) state.visitHistory = {};
-  const visitKey = state.currentBook + ' ' + state.currentChap;
   const today = new Date().toLocaleDateString('pt-BR');
-  if(!state.visitHistory[visitKey]) {
+  const chapKey = state.currentBook + ' ' + state.currentChap; // para comparação com readHistory
+  // Verifica se já tem alguma entrada para este capítulo (qualquer versículo)
+  const jaTemVisita = Object.keys(state.visitHistory).some(k => k === chapKey || k.startsWith(chapKey + ':'));
+  if(!jaTemVisita) {
+    const visitKey = chapKey + ':1';
     state.visitHistory[visitKey] = today;
+    // Migrar chave antiga sem versículo, se existir
+    if(state.visitHistory[chapKey]) { delete state.visitHistory[chapKey]; }
     saveState();
   }
 
@@ -3258,12 +3252,22 @@ function renderHistory() {
   if(!state.readHistory) state.readHistory = {};
   if(!state.visitHistory) state.visitHistory = {};
 
+  // Migrar entradas antigas sem versículo: "Gênesis 5" → "Gênesis 5:1"
+  Object.keys(state.visitHistory).forEach(k => {
+    if(!/:\d+/.test(k)) {
+      state.visitHistory[k + ':1'] = state.visitHistory[k];
+      delete state.visitHistory[k];
+    }
+  });
+
   const readEntries = Object.entries(state.readHistory)
     .sort((a, b) => b[1].split('/').reverse().join('-').localeCompare(a[1].split('/').reverse().join('-')));
 
   // Capítulos visitados mas não marcados como lidos
+  // visitHistory keys podem ter versículo: "Gênesis 5:3" — extrair parte capítulo para comparar
+  function chapFromVisitRef(ref) { return ref.replace(/:(\d+)(-\d+)?$/, ''); }
   const visitedOnly = Object.entries(state.visitHistory)
-    .filter(([ref]) => !state.readHistory[ref])
+    .filter(([ref]) => !state.readHistory[chapFromVisitRef(ref)])
     .sort((a, b) => b[1].split('/').reverse().join('-').localeCompare(a[1].split('/').reverse().join('-')));
 
   const hoje = new Date().toLocaleDateString('pt-BR');
@@ -3358,6 +3362,16 @@ function irParaRef(ref) {
       const el = document.querySelector('.verse[data-verse="' + verse + '"]');
       if(el) { el.scrollIntoView({behavior:'smooth', block:'center'}); el.style.background='var(--gold-dim)'; setTimeout(()=>{el.style.background='';},1500); }
     }, 200);
+    // Atualizar visitHistory com o versículo específico acessado
+    if(!state.visitHistory) state.visitHistory = {};
+    const chapKey = book + ' ' + chap;
+    const specificKey = chapKey + ':' + verse;
+    const today2 = new Date().toLocaleDateString('pt-BR');
+    // Remove entradas antigas deste capítulo e grava a específica
+    Object.keys(state.visitHistory).forEach(k => {
+      if(k === chapKey || k.startsWith(chapKey + ':')) delete state.visitHistory[k];
+    });
+    state.visitHistory[specificKey] = today2;
   }
   saveState();
 }
