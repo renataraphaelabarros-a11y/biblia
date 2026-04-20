@@ -1207,13 +1207,6 @@ option { background: var(--bg2); }
       <div style="font-family:Georgia, 'Times New Roman', serif;font-style:italic;font-size:0.95rem;color:var(--text2);margin-bottom:16px;">
         Por Rodrigo Silva · Bíblia Comentada
       </div>
-      <div id="plan-list">
-        <div class="loading"><div class="loading-cross">+</div><div class="loading-text">Carregando plano...</div></div>
-      </div>
-    </div>
-
-    <!-- ANOTAÇÕES -->
-    <div class="page" id="page-notes">
       <!-- Progresso AT / NT -->
       <div id="progress-bar-wrap" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:14px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
@@ -1231,6 +1224,13 @@ option { background: var(--bg2); }
           <div id="nt-bar" style="height:100%;background:var(--accent);border-radius:4px;width:0%;transition:width 0.5s"></div>
         </div>
       </div>
+      <div id="plan-list">
+        <div class="loading"><div class="loading-cross">+</div><div class="loading-text">Carregando plano...</div></div>
+      </div>
+    </div>
+
+    <!-- ANOTAÇÕES -->
+    <div class="page" id="page-notes">
       <div class="filter-chips" id="notes-filters">
         <button class="chip active" data-filter="all">Todas</button>
         <button class="chip" data-filter="favorites">&#9733; Favoritos</button>
@@ -1537,7 +1537,7 @@ function anotarSelecionados() {
   const refStart = document.getElementById('vm-ref-start');
   if(refStart) refStart.textContent = firstRef;
   document.getElementById('vm-text').textContent = text;
-  document.getElementById('vm-note').value = textos;
+  document.getElementById('vm-note').value = '';
   document.getElementById('vm-fav-icon').textContent = '☆';
   document.getElementById('vm-fav-btn').classList.remove('active');
   document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
@@ -2269,7 +2269,8 @@ function navigateChap(dir) {
 
     updateVerseSelect();
   renderChapter();
-  window.scrollTo(0,0);
+  const contentEl = document.querySelector('.content');
+  if(contentEl) contentEl.scrollTop = 0;
   saveState();
 }
 
