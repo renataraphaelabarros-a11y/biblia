@@ -1924,30 +1924,22 @@ function navUpdateRefDisplay() {
   let touchStartX = 0, touchStartY = 0;
   const MIN_SWIPE = 60;
   const MAX_VERT = 80;
-  function onTouchStart(e) {
+  // Listener único no document — não duplicar em sub-elementos
+  document.addEventListener('touchstart', function(e) {
     touchStartX = e.touches[0].clientX;
     touchStartY = e.touches[0].clientY;
-  }
-  function onTouchEnd(e) {
+  }, {passive: true});
+  document.addEventListener('touchend', function(e) {
     const dx = e.changedTouches[0].clientX - touchStartX;
     const dy = e.changedTouches[0].clientY - touchStartY;
     if(Math.abs(dx) > MIN_SWIPE && Math.abs(dy) < MAX_VERT) {
-      // verificar se o nav-index está fechado
       if(document.getElementById('nav-index').style.display !== 'none') return;
-      if(dx < 0) navigateChap(1);  // swipe esquerda → próximo
-      else navigateChap(-1);         // swipe direita → anterior
+      // Só age na aba de leitura
+      if(!document.getElementById('page-reader')?.classList.contains('active')) return;
+      if(dx < 0) navigateChap(1);   // swipe esquerda → próximo
+      else navigateChap(-1);          // swipe direita → anterior
     }
-  }
-  document.addEventListener('DOMContentLoaded', () => {
-    const bibleText = document.getElementById('bible-text');
-    if(bibleText) {
-      bibleText.addEventListener('touchstart', onTouchStart, {passive:true});
-      bibleText.addEventListener('touchend', onTouchEnd, {passive:true});
-    }
-  });
-  // também adicionar no content para pegar áreas além do texto
-  document.addEventListener('touchstart', onTouchStart, {passive:true});
-  document.addEventListener('touchend', onTouchEnd, {passive:true});
+  }, {passive: true});
 })();
 
 // ---- Indicador flutuante de capítulo ao rolar ----
