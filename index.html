@@ -445,6 +445,13 @@ option { background: var(--bg2); }
 }
 .verse-inline-note:hover { opacity: 0.8; }
 
+/* Versículo selecionado (multi-seleção) */
+.verse.verse-selected {
+  background: rgba(74,144,217,0.2) !important;
+  border-bottom: 2px solid var(--accent) !important;
+  border-radius: 4px;
+}
+
 /* Badge de hiperlinks entre versículos */
 .verse-link-badge {
   display: inline-block;
@@ -1170,20 +1177,6 @@ option { background: var(--bg2); }
           <span class="font-size-label" id="font-size-label">100%</span>
           <button class="font-btn" id="font-up">A+</button>
           <span style="font-size:0.72rem;color:var(--text3);margin-left:4px;">Tamanho</span>
-          <div style="width:1px;height:20px;background:var(--border);margin:0 6px"></div>
-          <button id="marker-mode-btn" title="Modo marca-texto" style="background:none;border:1px solid var(--border);border-radius:6px;padding:4px 10px;cursor:pointer;font-size:0.8rem;color:var(--text3);transition:all 0.2s;display:flex;align-items:center;gap:5px">
-            <span style="font-size:1rem">🖊</span> Marca-texto
-          </button>
-        </div>
-        <!-- Paleta de cores do marca-texto (oculta por padrão) -->
-        <div id="marker-palette" style="display:none;align-items:center;gap:8px;padding:6px 4px 2px;flex-wrap:wrap">
-          <span style="font-size:0.75rem;color:var(--text3)">Cor:</span>
-          <button class="marker-color-btn active" data-mcolor="gold" title="Dourado" style="width:26px;height:26px;border-radius:50%;background:var(--gold);border:2px solid transparent;cursor:pointer;transition:transform 0.15s"></button>
-          <button class="marker-color-btn" data-mcolor="blue" title="Azul" style="width:26px;height:26px;border-radius:50%;background:var(--accent);border:2px solid transparent;cursor:pointer;transition:transform 0.15s"></button>
-          <button class="marker-color-btn" data-mcolor="green" title="Verde" style="width:26px;height:26px;border-radius:50%;background:var(--green);border:2px solid transparent;cursor:pointer;transition:transform 0.15s"></button>
-          <button class="marker-color-btn" data-mcolor="red" title="Vermelho" style="width:26px;height:26px;border-radius:50%;background:var(--red);border:2px solid transparent;cursor:pointer;transition:transform 0.15s"></button>
-          <button id="marker-clear-btn" title="Remover destaque" style="width:26px;height:26px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);cursor:pointer;font-size:0.75rem;color:var(--text3)">✕</button>
-          <span style="font-size:0.72rem;color:var(--text3);margin-left:4px">Toque num versículo para marcar</span>
         </div>
       </div><!-- /reader-sticky-header -->
 
@@ -1221,6 +1214,23 @@ option { background: var(--bg2); }
 
     <!-- ANOTAÇÕES -->
     <div class="page" id="page-notes">
+      <!-- Progresso AT / NT -->
+      <div id="progress-bar-wrap" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span style="font-size:0.78rem;font-weight:600;color:var(--text2)">Antigo Testamento</span>
+          <span id="at-pct" style="font-size:0.72rem;color:var(--text3)">0%</span>
+        </div>
+        <div style="height:7px;background:var(--bg3);border-radius:4px;overflow:hidden;margin-bottom:12px">
+          <div id="at-bar" style="height:100%;background:var(--gold);border-radius:4px;width:0%;transition:width 0.5s"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span style="font-size:0.78rem;font-weight:600;color:var(--text2)">Novo Testamento</span>
+          <span id="nt-pct" style="font-size:0.72rem;color:var(--text3)">0%</span>
+        </div>
+        <div style="height:7px;background:var(--bg3);border-radius:4px;overflow:hidden">
+          <div id="nt-bar" style="height:100%;background:var(--accent);border-radius:4px;width:0%;transition:width 0.5s"></div>
+        </div>
+      </div>
       <div class="filter-chips" id="notes-filters">
         <button class="chip active" data-filter="all">Todas</button>
         <button class="chip" data-filter="favorites">&#9733; Favoritos</button>
@@ -1265,6 +1275,13 @@ option { background: var(--bg2); }
 
   </div><!-- /content -->
 
+  <!-- BARRA DE SELEÇÃO MÚLTIPLA DE VERSÍCULOS -->
+  <div id="multi-select-bar" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:200;background:var(--surface);border-top:1px solid var(--border);padding:10px 16px;display:none;align-items:center;gap:10px;box-shadow:0 -4px 20px rgba(0,0,0,0.3)">
+    <span id="multi-select-count" style="flex:1;font-size:0.85rem;color:var(--text2)">0 versículos selecionados</span>
+    <button onclick="anotarSelecionados()" style="background:var(--gold);color:#0d1b2a;border:none;border-radius:8px;padding:8px 16px;cursor:pointer;font-size:0.85rem;font-weight:700">✎ Anotar</button>
+    <button onclick="cancelarSelecao()" style="background:none;border:1px solid var(--border);color:var(--text3);border-radius:8px;padding:8px 12px;cursor:pointer;font-size:0.85rem">Cancelar</button>
+  </div>
+
   <!-- INDICADOR FLUTUANTE DE ROLAGEM -->
   <div id="scroll-chapter-indicator" style="display:none;position:fixed;bottom:70px;right:12px;z-index:90;background:rgba(0,0,0,0.72);color:#fff;padding:5px 13px;border-radius:20px;font-size:0.78rem;font-weight:600;pointer-events:none;transition:opacity 0.3s"></div>
 </div><!-- /app -->
@@ -1272,8 +1289,17 @@ option { background: var(--bg2); }
 <!-- MODAL VERSÍCULO -->
 <div class="verse-modal" id="verse-modal">
   <div class="verse-modal-inner">
-    <div class="verse-modal-ref" id="vm-ref"></div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+      <div class="verse-modal-ref" id="vm-ref" style="flex:1"></div>
+      <button id="vm-share-btn" title="Compartilhar versículo" style="background:none;border:1px solid var(--border);color:var(--text3);border-radius:8px;padding:5px 10px;cursor:pointer;font-size:0.82rem;display:flex;align-items:center;gap:4px;transition:color 0.15s,border-color 0.15s" onmouseover="this.style.color='var(--gold)';this.style.borderColor='var(--gold)'" onmouseout="this.style.color='var(--text3)';this.style.borderColor='var(--border)'">&#x2197; Compartilhar</button>
+    </div>
     <div class="verse-modal-text" id="vm-text"></div>
+
+    <!-- Paralelo: versículos relacionados lado a lado -->
+    <div id="vm-parallel-section" style="display:none;margin-bottom:14px">
+      <div class="vm-section-title">📖 Paralelo</div>
+      <div id="vm-parallel-list" style="display:flex;flex-direction:column;gap:8px"></div>
+    </div>
 
     <div class="vm-section-title">Destacar</div>
     <div class="highlight-colors">
@@ -1285,6 +1311,14 @@ option { background: var(--bg2); }
     </div>
 
     <div class="vm-section-title">Anotação</div>
+    <!-- Seleção de intervalo de versículos -->
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+      <span style="font-size:0.78rem;color:var(--text3)">De <span id="vm-ref-start" style="color:var(--gold);font-weight:600"></span> até:</span>
+      <select id="vm-verse-end" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:0.78rem;outline:none;cursor:pointer;max-width:80px" title="Versículo final do trecho (opcional)">
+        <option value="">só este</option>
+      </select>
+      <span style="font-size:0.7rem;color:var(--text3)">(trecho opcional)</span>
+    </div>
     <textarea class="vm-textarea" id="vm-note" placeholder="Suas reflexões sobre este versículo..."></textarea>
 
     <div class="vm-section-title" style="margin-top:12px">Adicionar ao Estudo <span style="font-size:0.72rem;color:var(--text3);font-weight:normal">(opcional)</span></div>
@@ -1431,7 +1465,100 @@ let state = {
   currentChap: 1,
 };
 let currentVerse = null; // {book, chap, verse, ref, text}
-let highlightMode = { active: false, color: 'gold' }; // modo marca-texto
+
+// ---- Multi-seleção de versículos ----
+const selectionMode = { active: false, selected: new Set() };
+
+function toggleVerseSelection(el) {
+  const ref = el.dataset.ref;
+  if(!ref) return;
+  if(!selectionMode.active) {
+    selectionMode.active = true;
+    selectionMode.selected.clear();
+  }
+  if(selectionMode.selected.has(ref)) {
+    selectionMode.selected.delete(ref);
+    el.classList.remove('verse-selected');
+  } else {
+    selectionMode.selected.add(ref);
+    el.classList.add('verse-selected');
+  }
+  updateMultiSelectBar();
+}
+
+function updateMultiSelectBar() {
+  const bar = document.getElementById('multi-select-bar');
+  const count = selectionMode.selected.size;
+  if(count === 0 && selectionMode.active) {
+    selectionMode.active = false;
+    if(bar) bar.style.display = 'none';
+    return;
+  }
+  if(bar) {
+    bar.style.display = count > 0 ? 'flex' : 'none';
+    const countEl = document.getElementById('multi-select-count');
+    if(countEl) countEl.textContent = count + ' versículo' + (count > 1 ? 's' : '') + ' selecionado' + (count > 1 ? 's' : '');
+  }
+}
+
+function cancelarSelecao() {
+  selectionMode.active = false;
+  selectionMode.selected.clear();
+  document.querySelectorAll('.verse.verse-selected').forEach(el => el.classList.remove('verse-selected'));
+  const bar = document.getElementById('multi-select-bar');
+  if(bar) bar.style.display = 'none';
+}
+
+function anotarSelecionados() {
+  if(selectionMode.selected.size === 0) return;
+  // Ordenar selecionados por capítulo:versículo
+  const refs = Array.from(selectionMode.selected).sort((a, b) => {
+    const pa = a.match(/(\d+):(\d+)$/), pb = b.match(/(\d+):(\d+)$/);
+    if(!pa || !pb) return 0;
+    return (parseInt(pa[1])*1000 + parseInt(pa[2])) - (parseInt(pb[1])*1000 + parseInt(pb[2]));
+  });
+  // Montar textos
+  const textos = refs.map(r => {
+    const m = r.match(/^(.+) (\d+):(\d+)$/);
+    if(!m) return '';
+    const t = BIBLE[m[1]]?.[parseInt(m[2])]?.[parseInt(m[3])] || '';
+    return r + ': "' + t + '"';
+  }).join('\n');
+  // Abrir modal com o primeiro versículo como âncora
+  const firstRef = refs[0];
+  const m = firstRef.match(/^(.+) (\d+):(\d+)$/);
+  if(!m) return;
+  const book = m[1], chap = parseInt(m[2]), verse = parseInt(m[3]);
+  const text = BIBLE[book]?.[chap]?.[verse] || '';
+  cancelarSelecao();
+  // Abre modal e pré-preenche nota com todos os textos
+  currentVerse = { book, chap, verse, ref: firstRef, text };
+  document.getElementById('vm-ref').textContent = refs.length > 1 ? refs[0] + ' + ' + (refs.length-1) + ' outros' : firstRef;
+  const refStart = document.getElementById('vm-ref-start');
+  if(refStart) refStart.textContent = firstRef;
+  document.getElementById('vm-text').textContent = text;
+  document.getElementById('vm-note').value = textos;
+  document.getElementById('vm-fav-icon').textContent = '☆';
+  document.getElementById('vm-fav-btn').classList.remove('active');
+  document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('vm-link-input').value = '';
+  renderVmLinks(firstRef);
+  renderVmParallel(firstRef);
+  const verseEndEl = document.getElementById('vm-verse-end');
+  if(verseEndEl) verseEndEl.innerHTML = '<option value="">— múltiplos —</option>';
+  const sel = document.getElementById('vm-study-select');
+  sel.innerHTML = '<option value="">— Não adicionar —</option>';
+  state.studies.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.id; opt.textContent = s.title || 'Sem título';
+    sel.appendChild(opt);
+  });
+  const newOpt = document.createElement('option');
+  newOpt.value = 'new'; newOpt.textContent = '+ Novo estudo...';
+  sel.appendChild(newOpt);
+  sel.value = '';
+  document.getElementById('verse-modal').classList.add('open');
+}
 
 // ============================================================
 // PERSISTÊNCIA LOCAL
@@ -1676,6 +1803,29 @@ function updateAnnualProgress() {
   document.getElementById('annual-pct').textContent = pct + '%';
 }
 
+function updateProgressBars() {
+  if(!BIBLE) return;
+  const readH = state.readHistory || {};
+  let atTotal = 0, atRead = 0, ntTotal = 0, ntRead = 0;
+  BOOKS_ORDER.forEach(book => {
+    if(!BIBLE[book]) return;
+    const chaps = Object.keys(BIBLE[book]).length;
+    const readChaps = Object.keys(readH).filter(k => k.startsWith(book + ' ')).length;
+    if(OT_BOOKS.has(book)) { atTotal += chaps; atRead += readChaps; }
+    else { ntTotal += chaps; ntRead += readChaps; }
+  });
+  const atPct = atTotal > 0 ? Math.round(atRead / atTotal * 100) : 0;
+  const ntPct = ntTotal > 0 ? Math.round(ntRead / ntTotal * 100) : 0;
+  const atBar = document.getElementById('at-bar');
+  const ntBar = document.getElementById('nt-bar');
+  const atEl = document.getElementById('at-pct');
+  const ntEl = document.getElementById('nt-pct');
+  if(atBar) atBar.style.width = atPct + '%';
+  if(ntBar) ntBar.style.width = ntPct + '%';
+  if(atEl) atEl.textContent = atPct + '% (' + atRead + '/' + atTotal + ' cap.)';
+  if(ntEl) ntEl.textContent = ntPct + '% (' + ntRead + '/' + ntTotal + ' cap.)';
+}
+
 function updateStats() {
   const setEl = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
   const notes = Object.values(state.annotations).filter(a => a.note && a.note.trim()).length;
@@ -1744,39 +1894,6 @@ function initReader() {
     updateFontSizeLabel(); saveState();
   });
 
-  // ---- Modo Marca-Texto ----
-  const markerBtn = document.getElementById('marker-mode-btn');
-  const markerPalette = document.getElementById('marker-palette');
-
-  markerBtn.addEventListener('click', () => {
-    highlightMode.active = !highlightMode.active;
-    markerPalette.style.display = highlightMode.active ? 'flex' : 'none';
-    if(highlightMode.active) {
-      markerBtn.style.background = 'var(--gold-dim)';
-      markerBtn.style.color = 'var(--gold)';
-      markerBtn.style.borderColor = 'var(--gold)';
-    } else {
-      markerBtn.style.background = 'none';
-      markerBtn.style.color = 'var(--text3)';
-      markerBtn.style.borderColor = 'var(--border)';
-    }
-  });
-
-  // Selecionar cor na paleta
-  document.querySelectorAll('.marker-color-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.marker-color-btn').forEach(b => b.style.border = '2px solid transparent');
-      btn.style.border = '3px solid var(--text)';
-      highlightMode.color = btn.dataset.mcolor;
-    });
-  });
-
-  // Remover destaque
-  document.getElementById('marker-clear-btn').addEventListener('click', () => {
-    document.querySelectorAll('.marker-color-btn').forEach(b => b.style.border = '2px solid transparent');
-    highlightMode.color = 'none';
-    document.getElementById('marker-clear-btn').style.border = '2px solid var(--gold)';
-  });
 }
 
 // ---- Abreviações dos livros ----
@@ -2073,31 +2190,31 @@ function renderChapter() {
     saveState();
   }
 
-  // Eventos nos versículos
+  // Eventos nos versículos (clique simples / long press para multi-seleção)
   container.querySelectorAll('.verse').forEach(el => {
+    let pressTimer = null;
+
+    // Long press → entra em modo de seleção múltipla
+    el.addEventListener('touchstart', () => {
+      pressTimer = setTimeout(() => {
+        pressTimer = null;
+        toggleVerseSelection(el);
+      }, 600);
+    }, {passive: true});
+    el.addEventListener('touchend', () => { clearTimeout(pressTimer); }, {passive: true});
+    el.addEventListener('touchmove', () => { clearTimeout(pressTimer); pressTimer = null; }, {passive: true});
+
     el.addEventListener('click', () => {
+      // Se modo de seleção ativo, toque normal também seleciona
+      if(selectionMode.active) {
+        toggleVerseSelection(el);
+        return;
+      }
       const book = el.dataset.book;
       const chapN = parseInt(el.dataset.chap);
       const verseN = parseInt(el.dataset.verse);
       const ref = el.dataset.ref;
       const text = BIBLE[book]?.[chapN]?.[verseN] || '';
-
-      // Modo marca-texto: aplica cor diretamente sem abrir modal
-      if(highlightMode.active) {
-        const ann = state.annotations[ref] || {};
-        ann.highlight = highlightMode.color === 'none' ? null : highlightMode.color;
-        state.annotations[ref] = ann;
-        saveState();
-        // Atualizar classes do elemento imediatamente (sem re-renderizar tudo)
-        el.className = el.className.replace(/\bhighlighted(-\w+)?\b/g, '').trim();
-        if(ann.highlight) {
-          el.classList.add('highlighted-' + ann.highlight);
-        }
-        // Feedback tátil: piscar
-        el.style.opacity = '0.5';
-        setTimeout(() => { el.style.opacity = ''; }, 150);
-        return;
-      }
 
       document.getElementById('select-verse').value = verseN;
       openVerseModal({book, chap: chapN, verse: verseN, ref, text});
@@ -2325,6 +2442,32 @@ function initVerseModal() {
     if(e.target === document.getElementById('verse-modal')) closeVerseModal();
   });
 
+  // Compartilhar versículo
+  document.getElementById('vm-share-btn').addEventListener('click', () => {
+    if(!currentVerse) return;
+    const verseEndEl = document.getElementById('vm-verse-end');
+    const verseEnd = verseEndEl && verseEndEl.value ? parseInt(verseEndEl.value) : null;
+    let shareRef = currentVerse.ref;
+    let shareText = '"' + currentVerse.text + '"';
+    if(verseEnd && verseEnd > currentVerse.verse) {
+      const extraTexts = [];
+      for(let v = currentVerse.verse + 1; v <= verseEnd; v++) {
+        const t = BIBLE[currentVerse.book]?.[currentVerse.chap]?.[v];
+        if(t) extraTexts.push(t);
+      }
+      shareText = '"' + currentVerse.text + (extraTexts.length ? ' ' + extraTexts.join(' ') : '') + '"';
+      shareRef = currentVerse.book + ' ' + currentVerse.chap + ':' + currentVerse.verse + '-' + verseEnd;
+    }
+    const fullText = shareText + '\n— ' + shareRef + ' (ARA)';
+    if(navigator.share) {
+      navigator.share({ text: fullText }).catch(() => {});
+    } else {
+      navigator.clipboard?.writeText(fullText).then(() => showToast('Copiado! ✓')).catch(() => {
+        showToast('Compartilhamento não suportado neste navegador.');
+      });
+    }
+  });
+
   // Handler de adicionar link
   document.getElementById('vm-link-add-btn').addEventListener('click', () => {
     if(!currentVerse) return;
@@ -2463,8 +2606,22 @@ function openVerseModal(verse) {
   document.getElementById('vm-ref').textContent = verse.ref;
   const refStart = document.getElementById('vm-ref-start');
   if(refStart) refStart.textContent = verse.ref;
-  const verseEndInput = document.getElementById('vm-verse-end');
-  if(verseEndInput) verseEndInput.value = '';
+
+  // Popular select de intervalo (versículos do mesmo capítulo após o atual)
+  const verseEndEl = document.getElementById('vm-verse-end');
+  if(verseEndEl) {
+    verseEndEl.innerHTML = '<option value="">só este</option>';
+    const chapVerses = BIBLE[verse.book]?.[verse.chap] || {};
+    const vNums = Object.keys(chapVerses).map(Number).sort((a,b)=>a-b);
+    vNums.filter(v => v > verse.verse).forEach(v => {
+      const opt = document.createElement('option');
+      opt.value = v;
+      opt.textContent = 'v.' + v;
+      verseEndEl.appendChild(opt);
+    });
+    verseEndEl.value = '';
+  }
+
   document.getElementById('vm-text').textContent = verse.text;
   document.getElementById('vm-note').value = ann.note || '';
   document.getElementById('vm-fav-icon').textContent = ann.favorite ? '⭐' : '☆';
@@ -2475,6 +2632,9 @@ function openVerseModal(verse) {
   if(ann.highlight) {
     document.querySelector(`.color-btn[data-color="${ann.highlight}"]`)?.classList.add('active');
   }
+
+  // Paralelo: mostrar versículos relacionados lado a lado
+  renderVmParallel(verse.ref);
 
   // Popular links relacionados
   document.getElementById('vm-link-input').value = '';
@@ -2496,6 +2656,24 @@ function openVerseModal(verse) {
   sel.value = '';
 
   document.getElementById('verse-modal').classList.add('open');
+}
+
+function renderVmParallel(ref) {
+  const section = document.getElementById('vm-parallel-section');
+  const list = document.getElementById('vm-parallel-list');
+  if(!section || !list) return;
+  const links = state.verseLinks?.[ref] || [];
+  if(links.length === 0) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+  list.innerHTML = links.map(lref => {
+    const m = lref.match(/^(.+) (\d+):(\d+)$/);
+    if(!m) return '';
+    const ltext = BIBLE[m[1]]?.[parseInt(m[2])]?.[parseInt(m[3])] || '';
+    return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 12px;cursor:pointer" onclick="closeVerseModal();irParaRef('${lref}')">
+      <div style="font-size:0.72rem;font-weight:700;color:var(--gold);margin-bottom:4px">${lref}</div>
+      <div style="font-size:0.85rem;color:var(--text2);line-height:1.5;font-family:Georgia,serif">${ltext}</div>
+    </div>`;
+  }).join('');
 }
 
 function closeVerseModal() {
@@ -2594,6 +2772,7 @@ function excluirNota(ev, ref) {
   showToast('Anotacao excluida!');
 }
 function renderNotes(filter, search) {
+  updateProgressBars();
   filter = filter || document.querySelector('#notes-filters .chip.active')?.dataset.filter || 'all';
   search = search ?? document.getElementById('notes-search').value;
 
@@ -3284,6 +3463,7 @@ function toggleMarkRead() {
   }
   saveState();
   updateMarkReadBtn();
+  updateProgressBars();
 }
 
 function updateMarkReadBtn() {
