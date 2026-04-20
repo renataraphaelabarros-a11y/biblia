@@ -1701,6 +1701,9 @@ function initTabs() {
       document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
       tab.classList.add('active');
       document.getElementById('page-' + tab.dataset.tab).classList.add('active');
+      // Atualizar conteúdo ao trocar de aba
+      if(tab.dataset.tab === 'notes') renderNotes();
+      if(tab.dataset.tab === 'plan') updateProgressBars();
     });
   });
 
@@ -2804,7 +2807,7 @@ function renderNotes(filter, search) {
     const text = BIBLE ? (() => {
       const m = ref.match(/^(.+) (\d+):(\d+)$/);
       if(!m) return '';
-      return BIBLE[m[1]]?.[m[2]]?.[m[3]] || '';
+      return BIBLE[m[1]]?.[parseInt(m[2])]?.[parseInt(m[3])] || '';
     })() : '';
     return `
       <div class="note-card" data-ref="${ref}" style="position:relative;cursor:pointer">
