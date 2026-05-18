@@ -1603,19 +1603,19 @@ initLock();
 // INICIALIZAÇÃO
 // ============================================================
 async function initApp() {
-  loadState();
-  applyTheme();
-  initTabs();
-  initDriveUI();
-  await loadBible();
-  initReader();
-  initPlan();
-  initNotes();
-  initStudies();
-  initSearch();
-  initVerseModal();
-  initScrollIndicator();
-  updateStats();
+  try { loadState(); } catch(e) {}
+  try { applyTheme(); } catch(e) {}
+  try { initTabs(); } catch(e) {}
+  try { initDriveUI(); } catch(e) {}
+  try { await loadBible(); } catch(e) {}
+  try { initReader(); } catch(e) { console.error('initReader:', e); }
+  try { initPlan(); } catch(e) { console.error('initPlan:', e); }
+  try { initNotes(); } catch(e) { console.error('initNotes:', e); }
+  try { initStudies(); } catch(e) { console.error('initStudies:', e); }
+  try { initSearch(); } catch(e) { console.error('initSearch:', e); }
+  try { initVerseModal(); } catch(e) {}
+  try { initScrollIndicator(); } catch(e) {}
+  try { updateStats(); } catch(e) {}
 }
 
 function initDriveUI() {
@@ -1751,7 +1751,8 @@ function updateHome() {
   const dv = window._dailyVerse;
   if(!dv) return;
   const text = BIBLE[dv.book]?.[dv.chap]?.[dv.verse];
-  if(text) document.getElementById('home-verse-text').textContent = '"' + text + '"';
+  const hvt = document.getElementById('home-verse-text');
+  if(text && hvt) hvt.textContent = '"' + text + '"';
 }
 
 function updateTodayCard() {
@@ -1762,7 +1763,8 @@ function updateTodayCard() {
   const week = Math.min(Math.ceil(dayOfYear / 7), 52);
   const dayOfWeek = ((dayOfYear - 1) % 7) + 1;
 
-  document.getElementById('today-badge').textContent = `Semana ${week} · Dia ${dayOfWeek}`;
+  const badgeEl = document.getElementById('today-badge');
+  if(badgeEl) badgeEl.textContent = `Semana ${week} · Dia ${dayOfWeek}`;
 
   const weekPlan = READING_PLAN[week] || {};
   const dayReading = weekPlan[dayOfWeek] || 'Descanso';
@@ -1772,10 +1774,12 @@ function updateTodayCard() {
   for(let d = 1; d <= 7; d++) {
     if(state.planProgress[`${week}_${d}`]) doneCount++;
   }
-  document.getElementById('today-progress-label').textContent = `${doneCount}/7 dias`;
+  const progressLabelEl = document.getElementById('today-progress-label');
+  if(progressLabelEl) progressLabelEl.textContent = `${doneCount}/7 dias`;
 
   // Renderizar leituras do dia
   const container = document.getElementById('today-readings');
+  if(!container) return;
   const readings = dayReading.split(';').map(r => r.trim()).filter(Boolean);
   const key = `${week}_${dayOfWeek}`;
   const done = state.planProgress[key];
@@ -1810,9 +1814,12 @@ function updateAnnualProgress() {
   const total = 364;
   const done = Object.values(state.planProgress).filter(Boolean).length;
   const pct = Math.round(done / total * 100);
-  document.getElementById('annual-bar').style.width = pct + '%';
-  document.getElementById('annual-days').textContent = `${done} dias lidos`;
-  document.getElementById('annual-pct').textContent = pct + '%';
+  const barEl = document.getElementById('annual-bar');
+  const daysEl = document.getElementById('annual-days');
+  const pctEl = document.getElementById('annual-pct');
+  if(barEl) barEl.style.width = pct + '%';
+  if(daysEl) daysEl.textContent = `${done} dias lidos`;
+  if(pctEl) pctEl.textContent = pct + '%';
 }
 
 function updateProgressBars() {
@@ -2041,7 +2048,7 @@ function navSelecionarVerso(verso) {
       el.style.background = 'var(--gold-dim)';
       setTimeout(() => { el.style.background = ''; }, 1500);
     }
-  }, 150);
+  }, 350);
 }
 
 function navUpdateRefDisplay() {
@@ -3543,19 +3550,24 @@ function irParaRef(ref) {
   navPushHistory();
   state.currentBook = book;
   state.currentChap = chap;
-  document.getElementById('select-book').value = book;
-  updateChapSelect();
-  updateVerseSelect();
-  renderChapter();
+  // Primeiro troca a aba para o leitor ficar visível ANTES de renderizar
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelector('[data-tab="reader"]').classList.add('active');
   document.getElementById('page-reader').classList.add('active');
+  document.getElementById('select-book').value = book;
+  updateChapSelect();
+  updateVerseSelect();
+  renderChapter();
   if(verse) {
     setTimeout(() => {
       const el = document.querySelector('.verse[data-verse="' + verse + '"]');
-      if(el) { el.scrollIntoView({behavior:'smooth', block:'center'}); el.style.background='var(--gold-dim)'; setTimeout(()=>{el.style.background='';},1500); }
-    }, 200);
+      if(el) {
+        el.scrollIntoView({behavior:'smooth', block:'center'});
+        el.style.background='var(--gold-dim)';
+        setTimeout(()=>{el.style.background='';},1500);
+      }
+    }, 400);
     if(!state.visitHistory) state.visitHistory = {};
     const chapKey = book + ' ' + chap;
     const specificKey = chapKey + ':' + verse;
@@ -3689,8 +3701,27 @@ async function driveSave(silent) {
   }
 }
 
-// Iniciar direto
-initLock();
+</script>
+</body>
+</html>    };
+    var resp = await fetch(
+      'https://www.googleapis.com/upload/drive/v3/files/'+driveFileId+'?uploadType=media',
+      {method:'PATCH', headers:{Authorization:'Bearer '+driveToken,'Content-Type':'application/json'}, body:JSON.stringify(payload)}
+    );
+    if(resp.status === 401) {
+      driveToken = null; localStorage.removeItem('driveToken');
+      driveSetStatus('disconnected');
+      if(!silent) showToast('Sessao expirada. Reconecte.');
+      return;
+    }
+    driveSetStatus('connected');
+    if(!silent) showToast('Salvo no Drive!');
+  } catch(e) {
+    driveSetStatus('disconnected');
+    showToast('Erro Drive: ' + e.message);
+  }
+}
+
 </script>
 </body>
 </html>
