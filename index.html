@@ -1592,17 +1592,12 @@ function loadState() {
 // INICIALIZAÇÃO DIRETA (sem senha)
 // ============================================================
 function initLock() {
-  // mantido por compatibilidade — chama direto
   document.getElementById('app').style.display = 'flex';
   document.getElementById('app').style.flexDirection = 'column';
   initApp();
 }
-// Iniciar ao carregar
-document.addEventListener('DOMContentLoaded', function() {
-  document.getElementById('app').style.display = 'flex';
-  document.getElementById('app').style.flexDirection = 'column';
-  initApp();
-});
+// Iniciar direto — script está no fim do body, DOM já está pronto
+initLock();
 
 // ============================================================
 // INICIALIZAÇÃO
