@@ -67,74 +67,8 @@ body {
   transition: background 0.3s, color 0.3s;
 }
 
-/* ===== TELA DE SENHA ===== */
-#lock-screen {
-  position: fixed; inset: 0;
-  background: var(--bg);
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  z-index: 9999;
-  gap: 24px;
-  padding: 32px;
-}
-.lock-title {
-  font-family: 'Cinzel', serif;
-  font-size: clamp(1.4rem, 5vw, 2rem);
-  color: var(--gold);
-  text-align: center;
-  letter-spacing: 0.05em;
-}
-.lock-subtitle {
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: 1.1rem;
-  color: var(--text2);
-  font-style: italic;
-}
-.lock-cross {
-  font-size: 3rem;
-  color: var(--gold);
-  opacity: 0.8;
-}
-.lock-input-wrap {
-  display: flex; flex-direction: column; gap: 12px;
-  width: 100%; max-width: 320px;
-}
-.lock-input {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 14px 18px;
-  color: var(--text);
-  font-size: 1rem;
-  font-family: 'Inter', sans-serif;
-  outline: none;
-  text-align: center;
-  letter-spacing: 0.1em;
-  transition: border-color 0.2s;
-}
-.lock-input:focus { border-color: var(--gold); }
-.lock-btn {
-  background: var(--gold);
-  color: #0d1b2a;
-  border: none;
-  border-radius: var(--radius);
-  padding: 14px;
-  font-family: 'Cinzel', serif;
-  font-size: 0.9rem;
-  letter-spacing: 0.08em;
-  cursor: pointer;
-  transition: opacity 0.2s, transform 0.1s;
-}
-.lock-btn:hover { opacity: 0.9; transform: translateY(-1px); }
-.lock-error {
-  color: var(--red);
-  font-size: 0.85rem;
-  text-align: center;
-  min-height: 20px;
-}
-
 /* ===== APP PRINCIPAL ===== */
-#app { display: none; flex-direction: column; height: 100vh; overflow: hidden; }
+#app { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 
 /* ===== NAVBAR ===== */
 .navbar {
@@ -1130,18 +1064,6 @@ body.focus-mode #bible-text { padding-top: 52px !important; }
 </head>
 <body>
 
-<!-- TELA DE SENHA -->
-<div id="lock-screen">
-  <div class="lock-cross">+</div>
-  <div class="lock-title">Bíblia Sagrada</div>
-  <div class="lock-subtitle">Almeida Revista e Atualizada</div>
-  <div class="lock-input-wrap">
-    <input type="password" class="lock-input" id="lock-input" placeholder="Senha" autocomplete="off">
-    <button class="lock-btn" id="lock-btn">ENTRAR</button>
-    <div class="lock-error" id="lock-error"></div>
-  </div>
-</div>
-
 <!-- APP PRINCIPAL -->
 <div id="app">
 
@@ -1439,7 +1361,6 @@ body.focus-mode #bible-text { padding-top: 52px !important; }
 // ============================================================
 // CONFIGURAÇÃO
 // ============================================================
-const PASSWORD = 'biblia2025';
 const BIBLE_URL = 'biblia.json';
 
 // Versículos do dia (rotação fixa por data)
@@ -1668,14 +1589,20 @@ function loadState() {
 }
 
 // ============================================================
-// SENHA
+// INICIALIZAÇÃO DIRETA (sem senha)
 // ============================================================
 function initLock() {
-  document.getElementById('lock-screen').style.display = 'none';
+  // mantido por compatibilidade — chama direto
   document.getElementById('app').style.display = 'flex';
   document.getElementById('app').style.flexDirection = 'column';
   initApp();
 }
+// Iniciar ao carregar
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('app').style.flexDirection = 'column';
+  initApp();
+});
 
 // ============================================================
 // INICIALIZAÇÃO
@@ -3759,169 +3686,4 @@ async function driveSave(silent) {
       return;
     }
     driveSetStatus('connected');
-    if(!silent) showToast('Salvo no Drive! (' + Object.keys(state.annotations).length + ' anotacoes)');
-  } catch(e) {
-    driveSetStatus('connected');
-    if(!silent) showToast('Erro ao salvar: ' + e.message);
-  }
-}
-
-async function driveLoad() {
-  if(!driveToken) return;
-  driveSetStatus('syncing');
-  try {
-    var sr = await fetch(
-      "https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name%3D'biblia-ara-dados.json'&fields=files(id)",
-      {headers:{Authorization:'Bearer '+driveToken}}
-    );
-    if(!sr.ok) {
-      driveToken = null; localStorage.removeItem('driveToken');
-      driveSetStatus('disconnected');
-      showToast('Sessao expirada. Reconecte.');
-      return;
-    }
-    var sd = await sr.json();
-    if(!sd.files || sd.files.length === 0) {
-      driveSetStatus('connected');
-      showToast('Drive conectado! Sem dados salvos ainda.');
-      return;
-    }
-    driveFileId = sd.files[0].id;
-    localStorage.setItem('driveFileId', driveFileId);
-    var r = await fetch(
-      'https://www.googleapis.com/drive/v3/files/'+driveFileId+'?alt=media',
-      {headers:{Authorization:'Bearer '+driveToken}}
-    );
-    if(!r.ok) { driveSetStatus('connected'); return; }
-    var data = await r.json();
-    // Substituir completamente (respeita exclusoes)
-    if(data.annotations) state.annotations = data.annotations;
-    if(data.planProgress) state.planProgress = data.planProgress;
-    if(data.studies) state.studies = data.studies;
-    if(data.tags) state.tags = data.tags;
-    saveState();
-    driveSetStatus('connected');
-    var n = Object.keys(state.annotations).length;
-    showToast('Drive: ' + n + ' anotacoes carregadas!');
-    renderNotes();
-    renderStudies();
-    updateStats();
-    // Re-renderizar capitulo para mostrar anotacoes no texto
-    if(typeof renderChapter === 'function') renderChapter();
-  } catch(e) {
-    driveSetStatus('disconnected');
-    showToast('Erro Drive: ' + e.message);
-  }
-}
-
-
-
-// ============================================================
-// HISTÓRICO DE LEITURA
-// ============================================================
-function toggleMarkRead() {
-  const key = state.currentBook + ' ' + state.currentChap;
-  if(!state.readHistory) state.readHistory = {};
-  if(state.readHistory[key]) {
-    delete state.readHistory[key];
-  } else {
-    state.readHistory[key] = new Date().toLocaleDateString('pt-BR');
-  }
-  saveState();
-  updateMarkReadBtn();
-  updateProgressBars();
-}
-
-function updateMarkReadBtn() {
-  const btn = document.getElementById('mark-read-btn');
-  if(!btn) return;
-  const key = state.currentBook + ' ' + state.currentChap;
-  const lido = state.readHistory && state.readHistory[key];
-  btn.className = lido ? 'lido' : '';
-  btn.innerHTML = lido ? '&#10003; Lido em ' + state.readHistory[key] : '&#10003; Marcar como lido';
-}
-
-// (histórico removido — mantido apenas no índice de livros via readHistory)
-
-// ============================================================
-// HISTÓRICO DE NAVEGAÇÃO (botão ↩ voltar)
-// ============================================================
-const navHistory = [];
-const NAV_HISTORY_MAX = 20;
-
-function navPushHistory() {
-  const last = navHistory[navHistory.length - 1];
-  const curr = { book: state.currentBook, chap: state.currentChap };
-  if(last && last.book === curr.book && last.chap === curr.chap) return;
-  navHistory.push(curr);
-  if(navHistory.length > NAV_HISTORY_MAX) navHistory.shift();
-  updateNavBackBtn();
-}
-
-function navBack() {
-  if(!navHistory.length) return;
-  const prev = navHistory.pop();
-  updateNavBackBtn();
-  state.currentBook = prev.book;
-  state.currentChap = prev.chap;
-  renderChapter();
-  document.getElementById('page-reader').scrollTop = 0;
-}
-
-function updateNavBackBtn() {
-  const btn = document.getElementById('nav-back-history-btn');
-  if(!btn) return;
-  if(navHistory.length > 0) {
-    const prev = navHistory[navHistory.length - 1];
-    btn.style.display = 'block';
-    btn.title = 'Voltar para ' + prev.book + ' ' + prev.chap;
-  } else {
-    btn.style.display = 'none';
-  }
-}
-
-function irParaRef(ref) {
-  // Suporta "João 3:16", "João 3:16-18", "João 3"
-  const m = ref.match(/^(.+) (\d+)(?::(\d+)(?:-\d+)?)?$/);
-  if(!m) return;
-  const book = m[1];
-  const chap = parseInt(m[2]);
-  const verse = m[3] ? parseInt(m[3]) : null;
-  if(!BIBLE[book]) return;
-  navPushHistory();
-  state.currentBook = book;
-  state.currentChap = chap;
-  document.getElementById('select-book').value = book;
-  updateChapSelect();
-  updateVerseSelect();
-  renderChapter();
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelector('[data-tab="reader"]').classList.add('active');
-  document.getElementById('page-reader').classList.add('active');
-  if(verse) {
-    setTimeout(() => {
-      const el = document.querySelector('.verse[data-verse="' + verse + '"]');
-      if(el) { el.scrollIntoView({behavior:'smooth', block:'center'}); el.style.background='var(--gold-dim)'; setTimeout(()=>{el.style.background='';},1500); }
-    }, 200);
-    // Atualizar visitHistory com o versículo específico acessado
-    if(!state.visitHistory) state.visitHistory = {};
-    const chapKey = book + ' ' + chap;
-    const specificKey = chapKey + ':' + verse;
-    const today2 = new Date().toLocaleDateString('pt-BR');
-    // Remove entradas antigas deste capítulo e grava a específica
-    Object.keys(state.visitHistory).forEach(k => {
-      if(k === chapKey || k.startsWith(chapKey + ':')) delete state.visitHistory[k];
-    });
-    state.visitHistory[specificKey] = today2;
-  }
-  saveState();
-}
-
-// ============================================================
-// START
-// ============================================================
-initLock();
-</script>
-</body>
-</html>
+    if(!silent) showToast('Salvo no Drive!
