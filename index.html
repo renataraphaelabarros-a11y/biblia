@@ -2138,6 +2138,7 @@ function renderChapter() {
   const chapLabel = `${state.currentBook} ${state.currentChap}`;
   document.getElementById('chap-title').textContent = chapLabel;
   document.getElementById('chap-title-bottom').textContent = chapLabel;
+  navUpdateRefDisplay(); // atualizar imediatamente ao renderizar
 
   const allChaps = Object.keys(BIBLE[state.currentBook]).map(Number).sort((a,b)=>a-b);
   const idx = allChaps.indexOf(state.currentChap);
