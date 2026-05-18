@@ -1219,9 +1219,12 @@ body.focus-mode #bible-text { padding-top: 52px !important; }
       <!-- ===== CABEÇALHO FIXO DO LEITOR ===== -->
       <div id="reader-sticky-header" style="position:sticky;top:0;z-index:50;background:var(--bg);margin:-16px -16px 0;padding:8px 16px 10px;border-bottom:1px solid var(--border);box-shadow:0 2px 12px rgba(0,0,0,0.25)">
         <!-- Barra de referência atual -->
-        <div id="nav-ref-bar" style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:7px 12px;background:var(--surface);border-radius:10px;border:1px solid var(--border);cursor:pointer" onclick="navAbrir()">
-          <span style="flex:1;font-weight:600;color:var(--gold);font-size:0.95rem" id="nav-ref-display">Gênesis 1</span>
-          <span style="color:var(--text3);font-size:0.8rem">&#9660; Índice</span>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+          <button id="nav-back-history-btn" onclick="navBack()" title="Voltar à leitura anterior" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--gold);cursor:pointer;padding:6px 10px;font-size:0.85rem;white-space:nowrap;flex-shrink:0;transition:border-color 0.15s" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border)'">↩</button>
+          <div id="nav-ref-bar" style="flex:1;display:flex;align-items:center;gap:8px;padding:7px 12px;background:var(--surface);border-radius:10px;border:1px solid var(--border);cursor:pointer" onclick="navAbrir()">
+            <span style="flex:1;font-weight:600;color:var(--gold);font-size:0.95rem" id="nav-ref-display">Gênesis 1</span>
+            <span style="color:var(--text3);font-size:0.8rem">&#9660; Índice</span>
+          </div>
         </div>
         <div class="font-controls">
           <button class="font-btn" id="font-down">A−</button>
@@ -2072,6 +2075,7 @@ function navRenderLivros() {
 }
 
 function navSelecionarLivro(livro) {
+  if(livro !== state.currentBook) navPushHistory();
   state.currentBook = livro;
   const caps = Object.keys(BIBLE[livro]).map(Number).sort((a,b)=>a-b);
   state.currentChap = caps[0];
@@ -2683,13 +2687,35 @@ function initVerseModal() {
       // Criar novo estudo com o versículo e a anotação
       const verseSnippet = currentVerse.text ? currentVerse.text.substring(0, 120) + (currentVerse.text.length > 120 ? '...' : '') : '';
       const studyBody = '[' + refKey + '] "' + verseSnippet + '"' + (note ? '\n\n' + note : '');
+      const newStudyId = Date.now();
       state.studies.unshift({
-        id: Date.now(),
+        id: newStudyId,
         title: refKey,
         body: studyBody,
         date: new Date().toLocaleDateString('pt-BR')
       });
-      showToast('Anotação salva e estudo criado!');
+      saveState();
+      renderNotes();
+      renderChapter();
+      closeVerseModal();
+      // Navegar para a aba Estudos e abrir o editor do novo estudo para renomear
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelector('[data-tab="studies"]').classList.add('active');
+      document.getElementById('page-studies').classList.add('active');
+      setTimeout(() => {
+        // Abrir o editor com o novo estudo
+        studyEditingId = newStudyId;
+        document.getElementById('study-title').value = refKey;
+        document.getElementById('study-body').value = studyBody;
+        const editor = document.getElementById('study-editor');
+        editor.classList.add('open');
+        const titleInput = document.getElementById('study-title');
+        titleInput.focus();
+        titleInput.select();
+        showToast('Dê um nome ao seu estudo ✏');
+      }, 150);
+      return; // já salvou acima
     } else if(studyVal) {
       // Adicionar ao estudo existente
       const studyId = parseInt(studyVal);
@@ -2906,7 +2932,17 @@ function renderNotes(filter, search) {
          !ann.note?.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
     })
-    .sort((a, b) => b[1].date?.localeCompare(a[1].date) || 0);
+    .sort((a, b) => {
+      const parseRef = ref => {
+        const m = ref.match(/^(.+) (\d+):(\d+)$/);
+        if(!m) return { bi: 999, c: 0, v: 0 };
+        return { bi: BOOKS_ORDER.indexOf(m[1]), c: parseInt(m[2]), v: parseInt(m[3]) };
+      };
+      const ra = parseRef(a[0]), rb = parseRef(b[0]);
+      if(ra.bi !== rb.bi) return ra.bi - rb.bi;
+      if(ra.c !== rb.c) return ra.c - rb.c;
+      return ra.v - rb.v;
+    });
 
   if(!entries.length) {
     list.innerHTML = `<div class="empty-state"><div class="empty-icon">✎</div><div class="empty-text">Nenhuma anotação encontrada.</div></div>`;
@@ -2942,6 +2978,7 @@ function renderNotes(filter, search) {
       if(!m || !BIBLE) return;
       const book = m[1], chap = parseInt(m[2]), verse = parseInt(m[3]);
       // Navegar para o texto
+      navPushHistory();
       state.currentBook = book;
       state.currentChap = chap;
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -3536,6 +3573,80 @@ function shareVerseAsImage(ref, text) {
 }
 
 // ============================================================
+// HISTÓRICO DE NAVEGAÇÃO (botão ↩ voltar)
+// ============================================================
+const navHistory = [];
+const NAV_HISTORY_MAX = 20;
+
+function navPushHistory() {
+  const last = navHistory[navHistory.length - 1];
+  const curr = { book: state.currentBook, chap: state.currentChap };
+  if(last && last.book === curr.book && last.chap === curr.chap) return;
+  navHistory.push(curr);
+  if(navHistory.length > NAV_HISTORY_MAX) navHistory.shift();
+  updateNavBackBtn();
+}
+
+function navBack() {
+  if(!navHistory.length) return;
+  const prev = navHistory.pop();
+  updateNavBackBtn();
+  state.currentBook = prev.book;
+  state.currentChap = prev.chap;
+  renderChapter();
+  document.querySelector('.content')?.scrollTo(0, 0);
+}
+
+function updateNavBackBtn() {
+  const btn = document.getElementById('nav-back-history-btn');
+  if(!btn) return;
+  if(navHistory.length > 0) {
+    const prev = navHistory[navHistory.length - 1];
+    btn.style.display = 'block';
+    btn.title = 'Voltar para ' + prev.book + ' ' + prev.chap;
+  } else {
+    btn.style.display = 'none';
+  }
+}
+
+function irParaRef(ref) {
+  // Suporta "João 3:16", "João 3:16-18", "João 3"
+  const m = ref.match(/^(.+) (\d+)(?::(\d+)(?:-\d+)?)?$/);
+  if(!m) return;
+  const book = m[1];
+  const chap = parseInt(m[2]);
+  const verse = m[3] ? parseInt(m[3]) : null;
+  if(!BIBLE[book]) return;
+  navPushHistory();
+  state.currentBook = book;
+  state.currentChap = chap;
+  document.getElementById('select-book').value = book;
+  updateChapSelect();
+  updateVerseSelect();
+  renderChapter();
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelector('[data-tab="reader"]').classList.add('active');
+  document.getElementById('page-reader').classList.add('active');
+  if(verse) {
+    setTimeout(() => {
+      const el = document.querySelector('.verse[data-verse="' + verse + '"]');
+      if(el) { el.scrollIntoView({behavior:'smooth', block:'center'}); el.style.background='var(--gold-dim)'; setTimeout(()=>{el.style.background='';},1500); }
+    }, 200);
+    if(!state.visitHistory) state.visitHistory = {};
+    const chapKey = book + ' ' + chap;
+    const specificKey = chapKey + ':' + verse;
+    const today2 = new Date().toLocaleDateString('pt-BR');
+    Object.keys(state.visitHistory).forEach(k => {
+      if(k.startsWith(chapKey)) delete state.visitHistory[k];
+    });
+    state.visitHistory[specificKey] = today2;
+    saveState();
+  }
+  saveState();
+}
+
+// ============================================================
 // GOOGLE DRIVE
 // ============================================================
 const DRIVE_CLIENT_ID = '1041275094551-579hpt8v43ql3k9iip65kpds02hceef2.apps.googleusercontent.com';
@@ -3732,6 +3843,43 @@ function updateMarkReadBtn() {
 
 // (histórico removido — mantido apenas no índice de livros via readHistory)
 
+// ============================================================
+// HISTÓRICO DE NAVEGAÇÃO (botão ↩ voltar)
+// ============================================================
+const navHistory = [];
+const NAV_HISTORY_MAX = 20;
+
+function navPushHistory() {
+  const last = navHistory[navHistory.length - 1];
+  const curr = { book: state.currentBook, chap: state.currentChap };
+  if(last && last.book === curr.book && last.chap === curr.chap) return;
+  navHistory.push(curr);
+  if(navHistory.length > NAV_HISTORY_MAX) navHistory.shift();
+  updateNavBackBtn();
+}
+
+function navBack() {
+  if(!navHistory.length) return;
+  const prev = navHistory.pop();
+  updateNavBackBtn();
+  state.currentBook = prev.book;
+  state.currentChap = prev.chap;
+  renderChapter();
+  document.getElementById('page-reader').scrollTop = 0;
+}
+
+function updateNavBackBtn() {
+  const btn = document.getElementById('nav-back-history-btn');
+  if(!btn) return;
+  if(navHistory.length > 0) {
+    const prev = navHistory[navHistory.length - 1];
+    btn.style.display = 'block';
+    btn.title = 'Voltar para ' + prev.book + ' ' + prev.chap;
+  } else {
+    btn.style.display = 'none';
+  }
+}
+
 function irParaRef(ref) {
   // Suporta "João 3:16", "João 3:16-18", "João 3"
   const m = ref.match(/^(.+) (\d+)(?::(\d+)(?:-\d+)?)?$/);
@@ -3740,6 +3888,7 @@ function irParaRef(ref) {
   const chap = parseInt(m[2]);
   const verse = m[3] ? parseInt(m[3]) : null;
   if(!BIBLE[book]) return;
+  navPushHistory();
   state.currentBook = book;
   state.currentChap = chap;
   document.getElementById('select-book').value = book;
