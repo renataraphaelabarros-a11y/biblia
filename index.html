@@ -1616,6 +1616,12 @@ async function initApp() {
   try { initVerseModal(); } catch(e) {}
   try { initScrollIndicator(); } catch(e) {}
   try { updateStats(); } catch(e) {}
+  // Diagnóstico rápido — mostra o que foi carregado do localStorage
+  const nAnn = Object.keys(state.annotations || {}).length;
+  const nStudies = (state.studies || []).length;
+  if(nAnn > 0 || nStudies > 0) {
+    showToast(`✓ ${nAnn} anotaç${nAnn===1?'ão':'ões'}, ${nStudies} estudo${nStudies!==1?'s':''} carregados`);
+  }
 }
 
 function initDriveUI() {
@@ -1711,8 +1717,9 @@ function initTabs() {
       tab.classList.add('active');
       document.getElementById('page-' + tab.dataset.tab).classList.add('active');
       // Atualizar conteúdo ao trocar de aba
-      if(tab.dataset.tab === 'notes') renderNotes();
-      if(tab.dataset.tab === 'plan') updateProgressBars();
+      if(tab.dataset.tab === 'notes') { try { renderNotes(); } catch(e) {} }
+      if(tab.dataset.tab === 'studies') { try { renderStudies(); } catch(e) {} }
+      if(tab.dataset.tab === 'plan') { try { updateProgressBars(); } catch(e) {} }
     });
   });
 
@@ -2043,8 +2050,11 @@ function navSelecionarVerso(verso) {
   navUpdateRefDisplay();
   setTimeout(() => {
     const el = document.querySelector('.verse[data-verse="' + verso + '"]');
-    if(el) {
-      el.scrollIntoView({behavior:'smooth', block:'center'});
+    const content = document.querySelector('.content');
+    if(el && content) {
+      const cr = content.getBoundingClientRect();
+      const er = el.getBoundingClientRect();
+      content.scrollTop = Math.max(0, content.scrollTop + er.top - cr.top - cr.height / 2 + er.height / 2);
       el.style.background = 'var(--gold-dim)';
       setTimeout(() => { el.style.background = ''; }, 1500);
     }
@@ -3562,12 +3572,15 @@ function irParaRef(ref) {
   if(verse) {
     setTimeout(() => {
       const el = document.querySelector('.verse[data-verse="' + verse + '"]');
-      if(el) {
-        el.scrollIntoView({behavior:'smooth', block:'center'});
+      const content = document.querySelector('.content');
+      if(el && content) {
+        const cr = content.getBoundingClientRect();
+        const er = el.getBoundingClientRect();
+        content.scrollTop = Math.max(0, content.scrollTop + er.top - cr.top - cr.height / 2 + er.height / 2);
         el.style.background='var(--gold-dim)';
         setTimeout(()=>{el.style.background='';},1500);
       }
-    }, 400);
+    }, 350);
     if(!state.visitHistory) state.visitHistory = {};
     const chapKey = book + ' ' + chap;
     const specificKey = chapKey + ':' + verse;
@@ -3704,6 +3717,34 @@ async function driveSave(silent) {
 </script>
 </body>
 </html>    };
+    var resp = await fetch(
+      'https://www.googleapis.com/upload/drive/v3/files/'+driveFileId+'?uploadType=media',
+      {method:'PATCH', headers:{Authorization:'Bearer '+driveToken,'Content-Type':'application/json'}, body:JSON.stringify(payload)}
+    );
+    if(resp.status === 401) {
+      driveToken = null; localStorage.removeItem('driveToken');
+      driveSetStatus('disconnected');
+      if(!silent) showToast('Sessao expirada. Reconecte.');
+      return;
+    }
+    driveSetStatus('connected');
+    if(!silent) showToast('Salvo no Drive!');
+  } catch(e) {
+    driveSetStatus('disconnected');
+    showToast('Erro Drive: ' + e.message);
+  }
+}
+
+</script>
+</body>
+</html>torage.setItem('driveFileId', driveFileId);
+    }
+    var payload = {
+      annotations: state.annotations,
+      planProgress: state.planProgress,
+      studies: state.studies,
+      tags: state.tags,
+    };
     var resp = await fetch(
       'https://www.googleapis.com/upload/drive/v3/files/'+driveFileId+'?uploadType=media',
       {method:'PATCH', headers:{Authorization:'Bearer '+driveToken,'Content-Type':'application/json'}, body:JSON.stringify(payload)}
