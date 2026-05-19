@@ -2046,20 +2046,22 @@ function navRenderVersos() {
 }
 
 function navSelecionarVerso(verso) {
+  _pendingScrollVerse = verso;
   navFechar();
   navUpdateRefDisplay();
-  setTimeout(() => { scrollToVerse(verso); }, 350);
 }
 
+
+let _pendingScrollVerse = null;
 
 function scrollToVerse(verseNum) {
   const el = document.querySelector('.verse[data-verse="' + verseNum + '"]');
   const cont = document.querySelector('.content');
   if(!el || !cont) return;
-  // Acumula offsetTop percorrendo a árvore até o .content
-  let offset = 0, cur = el;
-  while(cur && cur !== cont) { offset += cur.offsetTop; cur = cur.offsetParent; }
-  cont.scrollTop = Math.max(0, offset - cont.clientHeight / 2 + el.offsetHeight / 2);
+  const contRect = cont.getBoundingClientRect();
+  const elRect = el.getBoundingClientRect();
+  const target = cont.scrollTop + elRect.top - contRect.top - cont.clientHeight / 2 + el.offsetHeight / 2;
+  cont.scrollTop = Math.max(0, target);
   el.style.background = 'var(--gold-dim)';
   setTimeout(() => { el.style.background = ''; }, 1500);
 }
@@ -2212,6 +2214,12 @@ function renderChapter() {
   });
 
   container.innerHTML = html;
+  // Rolar para versículo pendente (ex: selecionado pelo índice ou busca)
+  if(_pendingScrollVerse !== null) {
+    const _v = _pendingScrollVerse;
+    _pendingScrollVerse = null;
+    requestAnimationFrame(() => { scrollToVerse(_v); });
+  }
   updateMarkReadBtn();
   navUpdateRefDisplay();
   // Atualizar label do modo foco
@@ -3571,9 +3579,9 @@ function irParaRef(ref) {
   document.getElementById('select-book').value = book;
   updateChapSelect();
   updateVerseSelect();
+  if(verse) { _pendingScrollVerse = verse; }
   renderChapter();
   if(verse) {
-    setTimeout(() => { scrollToVerse(verse); }, 350);
     if(!state.visitHistory) state.visitHistory = {};
     const chapKey = book + ' ' + chap;
     const specificKey = chapKey + ':' + verse;
